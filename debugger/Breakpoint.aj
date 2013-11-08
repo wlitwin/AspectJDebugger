@@ -1,5 +1,7 @@
 /* Implements the breakpoint feature for the debugger
  */
+package debugger;
+
 import java.util.Map;
 import java.util.HashMap;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -12,22 +14,22 @@ privileged aspect Breakpoint {
 	// Unfortunately this seems to be the only way to do it
 	pointcut methodCall(): 
 		execution(* **())
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	pointcut methodCall1(Object o):
 		execution(* **(..)) && args(o)
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	pointcut methodCall2(Object o1, Object o2):
 		execution(* **(..)) && args(o1, o2)
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	pointcut methodCall3(Object o1, Object o2, Object o3):
 		execution(* **(..)) && args(o1, o2, o3)
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	pointcut methodCall4(Object o1, Object o2, Object o3, Object o4):
 		execution(* **(..)) && args(o1, o2, o3, o4)
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	pointcut methodCall5(Object o1, Object o2, Object o3, Object o4, Object o5):
 		execution(* **(..)) && args(o1, o2, o3, o4, o5)
-		&& !within(Breakpoint);
+		&& !within(Breakpoint) && !within(Debugger);
 	
 	Object[] breakPoint(Object[] args) {
 		return args;
