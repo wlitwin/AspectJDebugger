@@ -14,22 +14,22 @@ privileged aspect Breakpoint {
 	// Unfortunately this seems to be the only way to do it
 	pointcut methodCall(): 
 		execution(* **())
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	pointcut methodCall1(Object o):
 		execution(* **(..)) && args(o)
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	pointcut methodCall2(Object o1, Object o2):
 		execution(* **(..)) && args(o1, o2)
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	pointcut methodCall3(Object o1, Object o2, Object o3):
 		execution(* **(..)) && args(o1, o2, o3)
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	pointcut methodCall4(Object o1, Object o2, Object o3, Object o4):
 		execution(* **(..)) && args(o1, o2, o3, o4)
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	pointcut methodCall5(Object o1, Object o2, Object o3, Object o4, Object o5):
 		execution(* **(..)) && args(o1, o2, o3, o4, o5)
-		&& !within(Breakpoint) && !within(Debugger);
+		&& !within(debugger.*);
 	
 	Object[] breakPoint(Object[] args) {
 		return args;
