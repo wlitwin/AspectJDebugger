@@ -1,6 +1,7 @@
 package debugger;
 
 import java.util.*;
+import java.lang.reflect.*;
 
 public class Debugger {
 	static final Scanner in = new Scanner(System.in);
@@ -8,6 +9,8 @@ public class Debugger {
 	static {
 		commands.add(new HelpCommand());
 		commands.add(new QuitCommand());
+		commands.add(new ListFieldsCommand());
+		commands.add(new ListMethodsCommand());
 		commands.add(new GoCommand());
 
 		// Force all other classes to be initialized
@@ -86,6 +89,58 @@ public class Debugger {
 
 		public boolean doWork(Scanner in) {
 			return true;
+		}
+	}
+
+	static class ListFieldsCommand implements ICommand {
+		public boolean matches(String input) {
+			return input.toLowerCase().equals("fields");
+		}
+
+		public String getUsage() {
+			return "fields class - list the fields of a class";
+		}
+
+		public boolean doWork(Scanner in) {
+			String line = in.nextLine().trim();
+			if (!ClassUtils.isValidClass(line)) {
+				System.out.println("Couldn't find class: " + line);
+				return false;
+			}
+
+			Class<?> c = ClassUtils.getClass(line);
+			Field[] fields = c.getDeclaredFields();
+			for (Field f : fields) {
+				System.out.println(f.getName());
+			}
+
+			return false;
+		}
+	}
+
+	static class ListMethodsCommand implements ICommand {
+		public boolean matches(String input) {
+			return input.toLowerCase().equals("methods");
+		}
+
+		public String getUsage() {
+			return "methods class - list the methods of a class";
+		}
+
+		public boolean doWork(Scanner in) {
+			String line = in.nextLine().trim();
+			if (!ClassUtils.isValidClass(line)) {
+				System.out.println("Couldn't find class: " + line);
+				return false;
+			}
+
+			Class<?> c = ClassUtils.getClass(line);
+			Method[] methods = c.getDeclaredMethods();
+			for (Method m : methods) {
+				System.out.println(m.toGenericString());
+			}
+
+			return false;
 		}
 	}
 
