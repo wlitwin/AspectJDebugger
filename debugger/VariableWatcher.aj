@@ -17,7 +17,7 @@ privileged aspect VariableWatcher {
 		}
 
 		public String getUsage() {
-			return "unwatch class.name - stop watching a variable";
+			return "unwatch class.field - stop watching a variable";
 		}
 
 		public boolean doWork(Scanner sc) {
@@ -39,14 +39,14 @@ privileged aspect VariableWatcher {
 		}
 
 		public String getUsage() {
-			return "watch class.name - watch a variable";
+			return "watch class.field - watch a variable";
 		}
 
 		public boolean doWork(Scanner sc) {
 			String line = sc.nextLine();
 			String[] classAndVar = line.trim().split("\\.");
 			if (classAndVar.length < 2) {
-				System.out.println("Invalid, usage is - watch class.name");
+				System.out.println("Invalid, usage is - watch class.field");
 				return false;
 			}
 
