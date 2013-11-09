@@ -1,8 +1,6 @@
 package debugger;
 
-import java.io.*;
 import java.util.*;
-import java.net.URL;
 
 public class Debugger {
 	static final Scanner in = new Scanner(System.in);
@@ -11,34 +9,10 @@ public class Debugger {
 		commands.add(new HelpCommand());
 		commands.add(new QuitCommand());
 		commands.add(new GoCommand());
-		// Force all other classes to run
-		try {
-			// TODO make more robust
-			ClassLoader cl = ClassLoader.getSystemClassLoader();
-			Enumeration<URL> urls = cl.getResources("debugger");
-			//System.out.println("Grabbed Resources");
-			for (; urls.hasMoreElements();) {
-				File file = new File(urls.nextElement().getFile());
-				if (file.isDirectory()) {
-					File[] classes = file.listFiles();	
-					for (File f : classes) {
-						if (f.getName().endsWith(".class")) {
-							String name = f.getName();
-							name = name.substring(0, name.indexOf("."));
-							name = "debugger."+name;
-							//System.out.println("Loading! " + name);
-							Class.forName(name, true, cl);
-						}
-					}
-				}
-			}
-		} catch (ClassNotFoundException e) {
-			System.err.println("Error loading the debugger!");
-			System.err.println("CNFE: " + e.getMessage());
-			System.exit(1);
-		} catch (IOException e) {
-			System.err.println("Error loading the debugger!");
-			System.err.println("IOE: " + e.getMessage());
+
+		// Force all other classes to be initialized
+		if (!ClassUtils.loadAllClassesInPackage("debugger")) {
+			System.err.println("Failed to load debugger!");
 			System.exit(1);
 		}
 	}
@@ -46,6 +20,10 @@ public class Debugger {
 	// Interesting!
 	{
 		System.out.println("CODE!");
+	}
+
+	public static Scanner getScanner() {
+		return in;
 	}
 
 	public static void prompt() {
