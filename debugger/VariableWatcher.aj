@@ -1,7 +1,6 @@
 package debugger;
 
 import java.util.*;
-import java.lang.reflect.*;
 
 privileged aspect VariableWatcher {
 	// Need a map to see if the variable is being watched
@@ -52,32 +51,26 @@ privileged aspect VariableWatcher {
 			}
 
 			// Try to find the class
-			try {
-				Class<?> c = Class.forName(classAndVar[0]);
-				// Try to find that field
-				Field[] fields = c.getDeclaredFields();	
-				boolean foundField = false;
-				for (Field f : fields) {
-					if (f.getName().equals(classAndVar[1])) {
-						foundField = true;
-						break;
-					}
-				}
-
-				if (foundField) {
-					String combined = classAndVar[0] + "." + classAndVar[1];
-					if (watchedVariables.contains(combined)) {
-						System.out.println("Already watching: " + combined);
-					} else {
-						System.out.println("Watching: " + combined);	
-						watchedVariables.add(combined);
-					}
-				} else {
-					System.out.println("Couldn't find field: " + classAndVar[1]);
-				}
-			} catch (ClassNotFoundException cnfe) {
+			if (!ClassUtils.isValidClass(classAndVar[0])) {
 				System.out.println("Couldn't find class: " + classAndVar[0]);
+				return false;
 			}
+
+			// Try to find the field
+			if (!ClassUtils.isValidField(classAndVar[0], classAndVar[1])) {
+				System.out.println("Couldn't find field: " + classAndVar[1]);
+				return false;
+			}
+
+			// Add it to the watched list
+			String combined = classAndVar[0] + "." + classAndVar[1];
+			if (watchedVariables.contains(combined)) {
+				System.out.println("Already watching: " + combined);
+			} else {
+				System.out.println("Watching: " + combined);	
+				watchedVariables.add(combined);
+			}
+
 			return false;
 		}
 	}
