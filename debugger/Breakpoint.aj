@@ -76,6 +76,17 @@ privileged aspect Breakpoint {
 			return false;
 		}
 	}
+
+	static void breakpointPrompt() {
+		Scanner in = Debugger.getScanner();
+		// Consume whatever might be waiting
+		in.nextLine();
+		boolean quit = false;
+		while (!quit) {
+			System.out.print("->$ ");
+			String input = in.nextLine();
+		}
+	}
 	
 	Object[] breakPoint(Object joinPoint, Object[] args) {
 		JoinPoint jp = (JoinPoint) joinPoint;
@@ -94,18 +105,21 @@ privileged aspect Breakpoint {
 			// Do breakpoint prompt
 			String fileName = jp.getSourceLocation().getFileName();
 			String lineNumber = "" + jp.getSourceLocation().getLine();
-			System.out.println("Breakpoint: " + jp.getSignature().toString()
-			 	+ "\nat " + fileName + ":" + lineNumber);
+			System.out.println("-> Breakpoint: " + jp.getSignature().toString()
+			 	+ "\n-> at " + fileName + ":" + lineNumber);
 			if (args.length == 0) {
-				System.out.println("No arguments");
+				System.out.println("-> No arguments");
 			} else {
-				System.out.println("Current arguments: ");
+				System.out.println("-> Current arguments: ");
 				for (int i = 0; i < args.length; ++i) {
-					System.out.println("  Param " + i + 
+					System.out.println("->  Param " + i + 
 						" - " + paramTypes[i].getName() +
 						" - " + args[i]);
 				}
 			}
+
+			// Enter the breakpoint prompt
+			breakpointPrompt();
 		}
 
 		return args;
