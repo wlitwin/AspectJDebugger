@@ -16,8 +16,12 @@ privileged aspect VariableWatcher {
 			return input.toLowerCase().equals("unwatch");
 		}
 
-		public String getUsage() {
-			return "unwatch class.field - stop watching a variable";
+		public String getHelp() {
+			return "stop watching a variable";
+		}
+
+		public String getCommand() {
+			return "unwatch class.field";
 		}
 
 		public boolean doWork(Scanner sc) {
@@ -38,8 +42,12 @@ privileged aspect VariableWatcher {
 			return input.toLowerCase().equals("watch");
 		}
 
-		public String getUsage() {
-			return "watch class.field - watch a variable";
+		public String getHelp() {
+			return "watch a variable";
+		}
+
+		public String getCommand() {
+			return "watch class.field";
 		}
 
 		public boolean doWork(Scanner sc) {

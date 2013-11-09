@@ -31,7 +31,7 @@ public class Debugger {
 
 	public static void prompt() {
 		try {
-			System.out.println("Entering prompt!");
+			System.out.println("Debug prompt");
 			boolean finished = false;
 			while (!finished) {
 				System.out.print("> ");
@@ -63,15 +63,47 @@ public class Debugger {
 			return input.toLowerCase().equals("help");
 		}
 
-		public String getUsage() {
-			return "help - displays available commands";
+		public String getCommand() {
+			return "help";
+		}
+
+		public String getHelp() {
+			return "displays available commands";
 		}
 
 		public boolean doWork(Scanner in) {
 			in.nextLine();
+
+			List<String[]> cmds = new ArrayList<String[]>(commands.size());
+			int longestCommand = 0;
+			for (ICommand cmd : commands) {
+				String command = cmd.getCommand();
+				String help = cmd.getHelp();
+				cmds.add(new String[] { command, help });
+
+				if (command.length() > longestCommand) {
+					longestCommand = command.length();
+				}
+			}
+
+			// Lets sort the commands alphabetically
+
+			Collections.sort(cmds, new Comparator<String[]>() {
+				public int compare(String[] s1, String[] s2) {
+					return s1[0].compareTo(s2[0]);
+				}
+			});
+
 			// Print the usage of all commands
-			for (ICommand cmd : Debugger.commands) {
-				System.out.println(cmd.getUsage());
+			for (String[] s : cmds) {
+				System.out.print(s[0]);	
+				// Calculate our padding
+				String padding = "";
+				for (int i = 0; i < longestCommand - s[0].length(); ++i) {
+					padding += " ";
+				}
+				System.out.print(padding);
+				System.out.println(" - " + s[1]);
 			}
 
 			return false;
@@ -83,8 +115,12 @@ public class Debugger {
 			return input.toLowerCase().equals("go");
 		}
 
-		public String getUsage() {
-			return "go - resume execution";	
+		public String getHelp() {
+			return "resume execution";	
+		}
+
+		public String getCommand() {
+			return "go";
 		}
 
 		public boolean doWork(Scanner in) {
@@ -97,8 +133,12 @@ public class Debugger {
 			return input.toLowerCase().equals("fields");
 		}
 
-		public String getUsage() {
-			return "fields class - list the fields of a class";
+		public String getCommand() {
+			return "fields class";
+		}
+
+		public String getHelp() {
+			return "list the fields of a class";
 		}
 
 		public boolean doWork(Scanner in) {
@@ -123,8 +163,12 @@ public class Debugger {
 			return input.toLowerCase().equals("methods");
 		}
 
-		public String getUsage() {
-			return "methods class - list the methods of a class";
+		public String getHelp() {
+			return "list the methods of a class";
+		}
+
+		public String getCommand() {
+			return "methods class";
 		}
 
 		public boolean doWork(Scanner in) {
@@ -149,8 +193,12 @@ public class Debugger {
 			return input.toLowerCase().equals("quit");
 		}
 		
-		public String getUsage() {
-			return "quit - quits the debugger (and program)";
+		public String getHelp() {
+			return "quits the debugger (and program)";
+		}
+
+		public String getCommand() {
+			return "quit";
 		}
 
 		public boolean doWork(Scanner in) {

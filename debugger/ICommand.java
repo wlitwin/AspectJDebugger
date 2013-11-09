@@ -7,7 +7,8 @@ public interface ICommand {
 	 */
 	public boolean matches(String command);
 
-	public String getUsage();
+	public String getCommand();
+	public String getHelp();
 
 	/*
 	 */

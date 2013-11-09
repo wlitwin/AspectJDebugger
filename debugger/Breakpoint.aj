@@ -5,6 +5,7 @@ package debugger;
 import java.util.*;
 import java.lang.reflect.*;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.SuppressAjWarnings;
 
 privileged aspect Breakpoint {
 	static List<String> breakpoints = new ArrayList<String>();
@@ -38,9 +39,13 @@ privileged aspect Breakpoint {
 			return input.toLowerCase().equals("break");
 		}
 
-		public String getUsage() {
-			return "break class.method - stop execution when the specified " + 
+		public String getHelp() {
+			return "stop execution when the specified " + 
 					"method is called";
+		}
+
+		public String getCommand() {
+			return "break class.method";
 		}
 
 		public boolean doWork(Scanner in) {
@@ -125,31 +130,37 @@ privileged aspect Breakpoint {
 		return args;
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around() : methodCall() {
 		breakPoint(thisJoinPoint, new Object[] { });
 		return proceed();	
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object o) : methodCall1(o) {
 		Object[] new_args = breakPoint(thisJoinPoint, new Object[] { o });
 		return proceed(new_args[0]);
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object o1, Object o2) : methodCall2(o1, o2) {
 		Object[] new_args = breakPoint(thisJoinPoint, new Object[] { o1, o2 });
 		return proceed(new_args[0], new_args[1]);
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object o1, Object o2, Object o3) : methodCall3(o1, o2, o3) {
 		Object[] new_args = breakPoint(thisJoinPoint, new Object[] { o1, o2, o3 });
 		return proceed(new_args[0], new_args[1], new_args[2]);
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object o1, Object o2, Object o3, Object o4) : methodCall4(o1, o2, o3, o4) {
 		Object[] new_args = breakPoint(thisJoinPoint, new Object[] { o1, o2, o3, o4 });
 		return proceed(new_args[0], new_args[1], new_args[2], new_args[3]);
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object o1, Object o2, Object o3, Object o4, Object o5) : methodCall5(o1, o2, o3, o4, o5) {
 		Object[] new_args = breakPoint(thisJoinPoint, new Object[] { o1, o2, o3, o4, o5 });
 		return proceed(new_args[0], new_args[1], new_args[2], new_args[3], new_args[4]);
