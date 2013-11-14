@@ -91,9 +91,13 @@ privileged aspect VariableWatcher {
 	before(Object o, Object value) : onSet(o, value) {
 		// Add the variable being set
 		String fullName = thisJoinPoint.getSignature().toString();
-		String varAndClass = fullName.split(" ")[1];
-		if (watchedVariables.contains(varAndClass)) {
-			System.out.println("-> " + fullName + " = " + value);	
+		String varClass = fullName.split(" ")[1];
+		String[] varAndClass = varClass.split("\\.");
+
+		int hashCode = System.identityHashCode(o);
+
+		if (watchedVariables.contains(varClass)) {
+			System.out.println("-> [" + hashCode + "] " + fullName + " = " + value);	
 		}
 	}
 }
