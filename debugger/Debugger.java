@@ -87,7 +87,6 @@ public class Debugger {
 			}
 
 			// Lets sort the commands alphabetically
-
 			Collections.sort(cmds, new Comparator<String[]>() {
 				public int compare(String[] s1, String[] s2) {
 					return s1[0].compareTo(s2[0]);
@@ -124,6 +123,7 @@ public class Debugger {
 		}
 
 		public boolean doWork(Scanner in) {
+			in.nextLine();
 			return true;
 		}
 	}
@@ -151,7 +151,7 @@ public class Debugger {
 			Class<?> c = ClassUtils.getClass(line);
 			Field[] fields = c.getDeclaredFields();
 			for (Field f : fields) {
-				System.out.println(f.getName());
+				System.out.println(f.toGenericString());
 			}
 
 			return false;
