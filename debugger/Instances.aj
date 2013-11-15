@@ -72,24 +72,24 @@ public aspect Instances {
 					Set<WeakReference> swr = instances.get(c);
 					if (!swr.isEmpty()) {
 						atLeastOne = true;
-						System.out.println(c);
+						Debugger.println(c);
 					}
 				}
 
 				if (!atLeastOne) {
-					System.out.println("-> No saved instances");
+					Debugger.println("-> No saved instances");
 				}
 				return false;
 			}
 
 			if (!ClassUtils.isValidClass(line)) {
-				System.out.println("-> " + line + " is not a valid class");
+				Debugger.errorln("-> " + line + " is not a valid class");
 				return false;
 			}
 
 			Class<?> c = ClassUtils.getClass(line);
 			if (!instances.containsKey(c)) {
-				System.out.println("-> There are no instances of " + c);
+				Debugger.errorln("-> There are no instances of " + c);
 				return false;
 			}
 
@@ -101,7 +101,7 @@ public aspect Instances {
 				Object o = w.get();
 				if (o != null) {
 					int hashCode = System.identityHashCode(o);
-					System.out.println("-> [" + hashCode + "]");
+					Debugger.println("-> [" + hashCode + "]");
 				} else {
 					// Cleanup this reference
 					it.remove();

@@ -52,10 +52,10 @@ public aspect StackTrace {
 			sc.nextLine(); // Consume input
 
 			if (callStack.empty()) {
-				System.out.println("-> The call stack is empty");
+				Debugger.println("-> The call stack is empty");
 			} else {
 				for (String s : callStack) {
-					System.out.println("-> " + s);
+					Debugger.println("-> " + s);
 				}
 			}
 

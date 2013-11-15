@@ -3,8 +3,14 @@ package debugger;
 import java.util.*;
 import java.lang.reflect.*;
 
+/**
+ * The basis of the debugger. This class initializes all command objects
+ * and houses the debugger prompt. This in combination with Debug.aj 
+ * get the debugger going.
+ */
 public class Debugger {
 	static final Scanner in = new Scanner(System.in);
+
 	static final List<ICommand> commands = new LinkedList<ICommand>();
 	static {
 		commands.add(new HelpCommand());
@@ -13,7 +19,14 @@ public class Debugger {
 		commands.add(new ListMethodsCommand());
 		commands.add(new GoCommand());
 
-		// Force all other classes to be initialized
+		// Force all other classes to be initialized.
+		// Without this other commands won't get added 
+		// to the commands list before we start
+		// executing the normal program. This method
+		// goes through and finds all classes in the
+		// debugger package and tells java to load them.
+		// This makes sure their static blocks run before
+		// we do anything else.
 		if (!ClassUtils.loadAllClassesInPackage("debugger")) {
 			System.err.println("Failed to load debugger!");
 			System.exit(1);
@@ -22,20 +35,27 @@ public class Debugger {
 
 	// Interesting!
 	{
-		System.out.println("CODE!");
+		Debugger.println("CODE!");
 	}
 
-	public static Scanner getScanner() {
-		return in;
-	}
-
+	/**
+	 * Very simple command prompt. It loops through all commands in the
+	 * commands ArrayList calling the matches() method until one of
+	 * the commands returns a true for a match. If no commands match
+	 * what was input by the user an error is reported.
+	 *
+	 * This method will keep looping until the doWork() method of a
+	 * command returns true, meaning it has finished processing.
+	 * Commands can return false instead to let another command do
+	 * work once it has finished.
+	 */
 	public static void prompt() {
 		try {
-			System.out.println("Debug prompt");
+			Debugger.println("Debug prompt");
 			boolean finished = false;
 			while (!finished) {
-				System.out.print("> ");
-				System.out.flush();
+				Debugger.print("> ");
+				Debugger.flush();
 				String line = in.next();
 
 				boolean foundCommand = false;
@@ -49,15 +69,46 @@ public class Debugger {
 
 				if (!foundCommand) {
 					in.nextLine(); // Clear what the entered
-					System.out.println("Invalid command!");
+					Debugger.errorln("Invalid command!");
 				}
 			}
 		} catch (NoSuchElementException nsee) {
-			System.out.println();
+			Debugger.println();
 			System.exit(0);
 		}
 	}
 
+	private static String NORMAL = "\u001B[0m";
+	private static String BOLD_WHITE = "\u001B[37;1m";
+	private static String BOLD_RED = "\u001B[31;1m";
+
+	public static void print(Object s) {
+		System.out.print(BOLD_WHITE + s.toString() + NORMAL);
+	}
+
+	public static void println(Object s) {
+		print(s.toString() + "\n");
+	}
+
+	public static void println() {
+		print("\n");
+	}
+
+	public static void flush() {
+		System.out.flush();
+	}
+
+	public static void error(Object s) {
+		System.out.print(BOLD_RED + s.toString() + NORMAL);
+	}
+
+	public static void errorln(Object s) {
+		error(s.toString() + "\n");
+	}
+
+	/**
+	 * Displays all commands and their description.
+	 */
 	static class HelpCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("help");
@@ -71,6 +122,13 @@ public class Debugger {
 			return "displays available commands";
 		}
 
+		/**
+		 * Pretty prints the the commands and their descriptions.
+		 *
+		 * @param in The scanner for user input. Not used.
+		 *
+		 * @return False, to let other commands execute
+		 */
 		public boolean doWork(Scanner in) {
 			in.nextLine();
 
@@ -95,20 +153,24 @@ public class Debugger {
 
 			// Print the usage of all commands
 			for (String[] s : cmds) {
-				System.out.print(s[0]);	
+				print(s[0]);	
 				// Calculate our padding
 				String padding = "";
 				for (int i = 0; i < longestCommand - s[0].length(); ++i) {
 					padding += " ";
 				}
-				System.out.print(padding);
-				System.out.println(" - " + s[1]);
+				print(padding);
+				println(" - " + s[1]);
 			}
 
 			return false;
 		}
 	}
 
+	/**
+	 * Tells the debugger prompt to return by returning True
+	 * in the doWork() function.
+	 */
 	static class GoCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("go");
@@ -122,12 +184,18 @@ public class Debugger {
 			return "go";
 		}
 
+		/**
+		 * Returns true so the prompt() will return as well.
+		 */
 		public boolean doWork(Scanner in) {
 			in.nextLine();
 			return true;
 		}
 	}
 
+	/**
+	 * Lists all the fields of a class.
+	 */
 	static class ListFieldsCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("fields");
@@ -141,23 +209,35 @@ public class Debugger {
 			return "list the fields of a class";
 		}
 
+		/**
+		 * Uses reflection to get all the fields of a class and then
+		 * prints them. If the class can't be found an error message
+		 * is printed instead.
+		 *
+		 * @param in A Scanner where the input is coming from.
+		 *
+		 * @return False to allow other commands to execute
+		 */
 		public boolean doWork(Scanner in) {
 			String line = in.nextLine().trim();
 			if (!ClassUtils.isValidClass(line)) {
-				System.out.println("Couldn't find class: " + line);
+				Debugger.errorln("Couldn't find class: " + line);
 				return false;
 			}
 
 			Class<?> c = ClassUtils.getClass(line);
 			Field[] fields = c.getDeclaredFields();
 			for (Field f : fields) {
-				System.out.println(f.toGenericString());
+				Debugger.println(f.toGenericString());
 			}
 
 			return false;
 		}
 	}
 
+	/**
+	 * Lists all methods of a class.
+	 */
 	static class ListMethodsCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("methods");
@@ -171,23 +251,35 @@ public class Debugger {
 			return "methods class";
 		}
 
+		/**
+		 * Uses reflection to get all the methods of a class and then
+		 * prints them. If the class can't be found an error message
+		 * is printed instead.
+		 *
+		 * @param in A Scanner where the input is coming from.
+		 *
+		 * @return False to allow other commands to execute
+		 */
 		public boolean doWork(Scanner in) {
 			String line = in.nextLine().trim();
 			if (!ClassUtils.isValidClass(line)) {
-				System.out.println("Couldn't find class: " + line);
+				Debugger.errorln("Couldn't find class: " + line);
 				return false;
 			}
 
 			Class<?> c = ClassUtils.getClass(line);
 			Method[] methods = c.getDeclaredMethods();
 			for (Method m : methods) {
-				System.out.println(m.toGenericString());
+				Debugger.println(m.toGenericString());
 			}
 
 			return false;
 		}
 	}
 
+	/**
+	 * Quits the debugger (and program).
+	 */
 	static class QuitCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("quit");
@@ -201,6 +293,11 @@ public class Debugger {
 			return "quit";
 		}
 
+		/**
+		 * Calls System.exit(0)
+		 *
+		 * @return True, doesn't really matter
+		 */
 		public boolean doWork(Scanner in) {
 			System.exit(0);
 			return true;

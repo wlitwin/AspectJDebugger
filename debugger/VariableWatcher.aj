@@ -28,9 +28,9 @@ privileged aspect VariableWatcher {
 			String line = sc.nextLine().trim();
 			if (watchedVariables.contains(line)) {
 				watchedVariables.remove(line);
-				System.out.println("Unwatching: " + line);
+				Debugger.println("Unwatching: " + line);
 			} else {
-				System.out.println("Not watching: " + line);
+				Debugger.println("Not watching: " + line);
 			}
 
 			return false;
@@ -54,28 +54,28 @@ privileged aspect VariableWatcher {
 			String line = sc.nextLine();
 			String[] classAndVar = line.trim().split("\\.");
 			if (classAndVar.length < 2) {
-				System.out.println("Invalid, usage is - watch class.field");
+				Debugger.errorln("Invalid, usage is - watch class.field");
 				return false;
 			}
 
 			// Try to find the class
 			if (!ClassUtils.isValidClass(classAndVar[0])) {
-				System.out.println("Couldn't find class: " + classAndVar[0]);
+				Debugger.errorln("Couldn't find class: " + classAndVar[0]);
 				return false;
 			}
 
 			// Try to find the field
 			if (!ClassUtils.isValidField(classAndVar[0], classAndVar[1])) {
-				System.out.println("Couldn't find field: " + classAndVar[1]);
+				Debugger.errorln("Couldn't find field: " + classAndVar[1]);
 				return false;
 			}
 
 			// Add it to the watched list
 			String combined = classAndVar[0] + "." + classAndVar[1];
 			if (watchedVariables.contains(combined)) {
-				System.out.println("Already watching: " + combined);
+				Debugger.println("Already watching: " + combined);
 			} else {
-				System.out.println("Watching: " + combined);	
+				Debugger.println("Watching: " + combined);	
 				watchedVariables.add(combined);
 			}
 
@@ -97,7 +97,7 @@ privileged aspect VariableWatcher {
 		int hashCode = System.identityHashCode(o);
 
 		if (watchedVariables.contains(varClass)) {
-			System.out.println("-> [" + hashCode + "] " + fullName + " = " + value);	
+			Debugger.println("-> [" + hashCode + "] " + fullName + " = " + value);	
 		}
 	}
 }
