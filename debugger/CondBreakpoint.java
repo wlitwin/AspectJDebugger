@@ -41,6 +41,10 @@ public class CondBreakpoint {
 	 * What all expressions must have
 	 */
 	static abstract class Expr {
+		public Token tok;
+		public Expr(Token tok) {
+			this.tok = tok;
+		}
 		public abstract Object evaluate();
 	}
 
@@ -50,7 +54,8 @@ public class CondBreakpoint {
 	static abstract class BinExpr extends Expr {
 		public Expr left;
 		public Expr right;
-		public BinExpr(Expr left, Expr right) {
+		public BinExpr(Token tok, Expr left, Expr right) {
+			super(tok);
 			this.left = left;
 			this.right = right;
 		}
@@ -61,7 +66,7 @@ public class CondBreakpoint {
 	 */
 	static class AndExpr extends BinExpr {
 		public AndExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.AND, l, r);
 		}
 
 		public Object evaluate() {
@@ -74,7 +79,7 @@ public class CondBreakpoint {
 	 */
 	static class OrExpr extends BinExpr {
 		public OrExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.OR, l, r);
 		}
 
 		public Object evaluate() {
@@ -84,7 +89,7 @@ public class CondBreakpoint {
 
 	static class GtExpr extends BinExpr {
 		public GtExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.GT, l, r);
 		}
 
 		public Object evaluate() {
@@ -96,7 +101,7 @@ public class CondBreakpoint {
 
 	static class GteExpr extends BinExpr {
 		public GteExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.GTE, l, r);
 		}
 
 		public Object evaluate() {
@@ -108,7 +113,7 @@ public class CondBreakpoint {
 
 	static class LtExpr extends BinExpr {
 		public LtExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.LT, l, r);
 		}
 
 		public Object evaluate() {
@@ -120,7 +125,7 @@ public class CondBreakpoint {
 
 	static class LteExpr extends BinExpr {
 		public LteExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.LTE, l, r);
 		}
 
 		public Object evaluate() {
@@ -132,7 +137,7 @@ public class CondBreakpoint {
 
 	static class EqExpr extends BinExpr {
 		public EqExpr(Expr l, Expr r) {
-			super(l, r);
+			super(Token.EQ, l, r);
 		}
 
 		public Object evaluate() {
@@ -145,6 +150,7 @@ public class CondBreakpoint {
 	static class ArgExpr extends Expr {
 		int index;
 		public ArgExpr(int index) {
+			super(Token.ARG);
 			this.index = index;
 		}
 
@@ -156,6 +162,7 @@ public class CondBreakpoint {
 	static class IntExpr extends Expr {
 		int value;
 		public IntExpr(int value) {
+			super(Token.INT);
 			this.value = value;
 		}
 
@@ -167,6 +174,7 @@ public class CondBreakpoint {
 	static class StrExpr extends Expr {
 		String value;
 		public StrExpr(String value) {
+			super(Token.STR);
 			this.value = value;
 		}
 
@@ -176,7 +184,9 @@ public class CondBreakpoint {
 	}
 
 	static class NullExpr extends Expr {
-		public NullExpr() { }
+		public NullExpr() { 
+			super(Token.NULL);
+		}
 		public Object evaluate() {
 			return null;
 		}
@@ -188,6 +198,7 @@ public class CondBreakpoint {
 	static class NotExpr extends Expr {
 		Expr expr;
 		public NotExpr(Expr e) {
+			super(Token.NOT);
 			this.expr = e;
 		}
 
@@ -200,19 +211,20 @@ public class CondBreakpoint {
 
 	enum Token {
 		AND("and", true, false, 0),
-		OR("or", true, false, 0),
-		NOT("not", false, false, 3),
-		ARG("arg", false, true, 3),
-		EQ("=", true, false, 2),
-		LT("<", true, false, 2),
-		LTE("<=", true, false, 2),
-		GT(">", true, false, 2),
-		GTE(">=", true, false, 2),
-		LPAREN("(", false, false, 3),
-		RPAREN(")", false, false, 3),
-		NULL("null", false, true, 3),
-		INT("", false, true, 3),
-		STR("", false, true, 3);
+		OR("or",   true, false, 0),
+		EQ("=",    true, false, 1),
+		LT("<",    true, false, 1),
+		LTE("<=",  true, false, 1),
+		GT(">",    true, false, 1),
+		GTE(">=",  true, false, 1),
+		// Primaries don't have a precedence
+		NOT("not", false, false, -1),
+		ARG("arg", false, true, -1),
+		LPAREN("(", false, false, -1),
+		RPAREN(")", false, false, -1),
+		NULL("null", false, true, -1),
+		INT("", false, true, -1),
+		STR("", false, true, -1);
 
 		private final String value;
 		private boolean isBinOp;
@@ -337,9 +349,17 @@ public class CondBreakpoint {
 			// Start parsing the rest of the tokens
 			String temp = in.next();
 			String[] classAndName = temp.split("\\.");
-			if (classAndName.length != 2 ||
-				!ClassUtils.isValidMethod(classAndName[0], classAndName[1])) {
-				throw new Exception("second token must be class.method");	
+			if (classAndName.length != 2) {
+				throw new Exception("Must specify a class.method");
+			}
+
+			if (!ClassUtils.isValidClass(classAndName[0])) {
+				throw new Exception("No such class: " + classAndName[0]);
+			}
+
+			if (!ClassUtils.isValidMethod(classAndName[0], classAndName[1])) {
+				throw new Exception("No such method: " + classAndName[1] 
+					+ " for class: " + classAndName[0]);	
 			} 
 
 			// Parse the rest of the tokens	
@@ -359,17 +379,22 @@ public class CondBreakpoint {
 			/*for (TokInfo ti : tokens) {
 				System.out.print(ti.tok.name() + " ");	
 			}
+			System.out.println();
 			*/
 
 			// Once we've checked it, create the expression tree
-			Expr root = parsePrimary(tokens);
+			Expr root = parseExpression(tokens);
 
 			//System.out.println("Type checking");
 			// Once we've parsed it, make sure everything conforms,
 			// a very simple type check
 			Method m = ClassUtils.getMethod(classAndName[0], classAndName[1]);
 			Class<?>[] types = m.getParameterTypes();
-			check(types, root);
+			if (check(types, root) != Type.BOOL) {
+				throw new Exception("must provide a boolean expression!");
+			}
+
+			Debugger.println(exprToInfix(root));
 
 		} catch (Exception e) {
 			Debugger.errorln("Failed to parse conditional: " + 
@@ -395,85 +420,110 @@ public class CondBreakpoint {
 		return lparens == 0;
 	}
 
-	private static Token check(Class<?>[] types, Expr node) throws Exception {
+	enum Type {
+		BOOL,
+		INT,
+		STR,
+		NULL
+	};
+
+	private static String exprToInfix(Expr node) {
+		switch (node.tok) {
+			case INT:  return "" + ((IntExpr)node).value;
+			case STR:  return ((StrExpr)node).value;
+			case NULL: return "null";
+			case ARG:  return "arg[" + ((ArgExpr)node).index + "]";
+			case NOT:  return "not (" + exprToInfix(((NotExpr)node).expr) + ")";
+			case AND:  return "(" + exprToInfix(((BinExpr)node).left) + " && " + exprToInfix(((BinExpr)node).right) + ")";
+			case OR:   return "(" + exprToInfix(((BinExpr)node).left) + " || " + exprToInfix(((BinExpr)node).right) + ")";
+			case LT:   return "(" + exprToInfix(((BinExpr)node).left) + " < "  + exprToInfix(((BinExpr)node).right) + ")";
+			case LTE:  return "(" + exprToInfix(((BinExpr)node).left) + " <= " + exprToInfix(((BinExpr)node).right) + ")";
+			case GT:   return "(" + exprToInfix(((BinExpr)node).left) + " > "  + exprToInfix(((BinExpr)node).right) + ")";
+			case GTE:  return "(" + exprToInfix(((BinExpr)node).left) + " >= " + exprToInfix(((BinExpr)node).right) + ")";
+			case EQ:   return "(" + exprToInfix(((BinExpr)node).left) + " = "  + exprToInfix(((BinExpr)node).right) + ")";
+			default:
+				throw new RuntimeException("Unhandled infix case");
+		}
+	}
+
+	private static Type check(Class<?>[] types, Expr node) throws Exception {
 		// We're using the tokens again because I'm lazy
 		// also AND == BOOLEAN type for now
-		System.out.println("Eval: " + node);
-
-		if (node instanceof IntExpr) {
-			return Token.INT; 
-		} else if (node instanceof StrExpr) {
-			return Token.STR;
-		} else if (node instanceof NullExpr) {
-			return Token.NULL;
-		} else if (node instanceof NotExpr) {
-			Token exprType = check(types, ((NotExpr)node).expr);
-			if (exprType != Token.AND) {
-				throw new Exception("Not must be applied to a boolean expression!");
+		switch (node.tok) {
+			case INT: return Type.INT;
+			case STR: return Type.STR;
+			case NULL: return Type.NULL;
+			case NOT:
+			{
+				if (check(types, ((NotExpr)node).expr) != Type.BOOL) {
+					throw new Exception("Not must be applied to a boolean expression!");
+				}
+				return Type.BOOL;
 			}
-			return Token.AND;
-		} else if (node instanceof ArgExpr) {
-			ArgExpr ae = (ArgExpr) node;
-			if (ae.index < 0 || ae.index >= types.length) {
-				throw new Exception("Invalid argument index: " + ae.index);
-			}
-			Class<?> t = types[ae.index];
-			if (String.class.isAssignableFrom(t)) {
-				return Token.STR;
-			} else if (Integer.class.isAssignableFrom(t) || 
+			case ARG:
+			{
+				ArgExpr ae = (ArgExpr) node;
+				if (ae.index < 0 || ae.index >= types.length) {
+					throw new Exception("Invalid argument index: " + ae.index);
+				}
+				Class<?> t = types[ae.index];
+				if (String.class.isAssignableFrom(t)) {
+					return Type.STR;
+				} else if (Integer.class.isAssignableFrom(t) || 
 						int.class.isAssignableFrom(t)) {
-				return Token.INT;
-			} else {
-				throw new Exception("Can't use arg for this parameter [index: " + ae.index + "] it has type " + t);
-			}
-		} else if (node instanceof BinExpr) {
-			Token left = check(types, ((BinExpr)node).left);
-			Token right = check(types, ((BinExpr)node).right);
-
-			if (node instanceof AndExpr) {
-				if (left != Token.AND || right != Token.AND) {
-					throw new Exception("And must be applied to two boolean expressions!");
-				}
-				return Token.AND;
-			} else if (node instanceof OrExpr) {
-				if (left != Token.AND || right != Token.AND) {
-					throw new Exception("Or must be applied to two boolean expressions!");
-				}
-			} else if (node instanceof EqExpr) {
-				System.out.println("Left: " + left.name() + " - Right: " + right.name());
-				if (left == right || 
-					(left == Token.STR && right == Token.NULL) ||
-					(left == Token.NULL && right == Token.STR)) {
-					return Token.AND;
+					return Type.INT;
 				} else {
-					throw new Exception("= must be applied to two expressions of the same type!");
+					throw new Exception("Can't use arg for this parameter [index: " + ae.index + "] it has type " + t);
 				}
-			} else if (node instanceof LteExpr) {
-				if (left != right) {
-					throw new Exception("<= must be applied to two expressions of the same type!");
-				}
-				return Token.AND;
-			} else if (node instanceof GteExpr) {
-				if (left != right) {
-					throw new Exception(">= must be applied to two expressions of the same type!");
-				}
-				return Token.AND;
-			} else if (node instanceof LtExpr) {
-				if (left != right) {
-					throw new Exception("< must be applied to two expressions of the same type!");
-				}
-				return Token.AND;
-			} else if (node instanceof GtExpr) {
-				if (left != right) {
-					throw new Exception("> must be applied to two expressions of the same type!");
-				}
-				return Token.AND;
-			} else {
-				throw new Exception("Type check missing BinOp case");
 			}
-		}
+			case AND:
+			case OR:
+			{
+				String name = "Or";
+				if (node.tok == Token.AND) { name = "And"; }
+				Type left = check(types, ((BinExpr)node).left);
+				Type right = check(types, ((BinExpr)node).right);
+				if (left != Type.BOOL || right != Type.BOOL) {
+					throw new Exception(name + " must be applied to two boolean expressions!");
+				}
 
-		throw new Exception("Type check missing case");
+				return Type.BOOL;
+			}
+			case LT:
+			case GT:
+			case LTE:
+			case GTE:
+			{
+				String name = "<";
+				if (node.tok == Token.GT) { name = ">"; }
+				else if (node.tok == Token.LTE) { name = "<="; }
+				else if (node.tok == Token.GTE) { name = ">="; }
+
+				Type left = check(types, ((BinExpr)node).left);
+				Type right = check(types, ((BinExpr)node).right);
+
+				if (left != right) {
+					throw new Exception(name + " must be applied to two expressions of the same type!");
+				}
+
+				return Type.BOOL;
+			}
+			case EQ:
+			{
+				Type left = check(types, ((BinExpr)node).left);
+				Type right = check(types, ((BinExpr)node).right);
+
+				if (left == right || 
+					(left == Type.STR && right == Type.NULL) ||
+					(left == Type.NULL && right == Type.STR)) {
+					return Type.BOOL;
+				} else {
+					throw new Exception("= can only be used on two expressions of the same type!");
+				}
+			}
+			default:
+				throw new Exception("Unhandled token type!");
+		}
 	}
 
 	private static void parse(LinkedList<TokInfo> tokens, SimpleReader in) throws Exception {
@@ -540,13 +590,18 @@ public class CondBreakpoint {
 
 	private static Expr parseExpression1(LinkedList<TokInfo> tokens, Expr lhs, int min_precedence) throws Exception {
 		TokInfo ti = tokens.get(0);
-		while (ti.tok.isBinOp() && ti.tok.precedence() >= min_precedence) {
+		while (!tokens.isEmpty() && ti.tok.isBinOp() && ti.tok.precedence() >= min_precedence) {
 			TokInfo op = tokens.remove(0);	
 			Expr rhs = parsePrimary(tokens);
-			ti = tokens.get(0);
-			while (ti.tok.isBinOp() && ti.tok.precedence() > op.tok.precedence()) {
-				TokInfo lookAhead = tokens.get(0);
-				rhs = parseExpression1(tokens, rhs, lookAhead.tok.precedence());
+			if (!tokens.isEmpty()) {
+				ti = tokens.get(0);
+				while (ti.tok.isBinOp() && ti.tok.precedence() > op.tok.precedence()) {
+					TokInfo lookAhead = tokens.get(0);
+					rhs = parseExpression1(tokens, rhs, lookAhead.tok.precedence());
+
+					if (tokens.isEmpty()) break;
+					ti = tokens.get(0);
+				}
 			}
 			switch (op.tok) {
 				case AND: lhs = new AndExpr(lhs, rhs); break;
@@ -558,6 +613,10 @@ public class CondBreakpoint {
 				case GTE: lhs = new GteExpr(lhs, rhs); break;
 				default:
 					throw new Exception("Unhandled binOp case");
+			}
+
+			if (!tokens.isEmpty()) {
+				ti = tokens.get(0);
 			}
 		}
 
