@@ -3,8 +3,40 @@ package debugger;
 import java.util.Scanner;
 import java.util.LinkedList;
 import java.lang.reflect.*;
+import java.util.regex.Pattern;
 
 public class CondBreakpoint {
+
+	static {
+		Debugger.commands.add(new BreakCondCommand());
+	}
+
+	static class BreakCondCommand implements ICommand {
+		public boolean matches(String input) {
+			return input.toLowerCase().equals("breakif");	
+		}
+
+		public String getHelp() {
+			return "conditional breakpoint";
+		}
+
+		public String getCommand() {
+			return "breakif class.method expression";
+		}
+
+		public boolean doWork(Scanner in) {
+			String input = in.nextLine();
+
+			parse(input);			
+
+			return false;
+		}
+	}
+
+	//=========================================================================
+	// Below this is the code for parsing the conditional expressions
+	//========================================================================
+
 	/**
 	 * What all expressions must have
 	 */
@@ -245,11 +277,46 @@ public class CondBreakpoint {
 		return new TokInfo(t);
 	}
 
-	/**
-	 * Read some input and make sure it's lower case
-	 */
-	private static String read(Scanner in) {
-		return in.next().toLowerCase();
+	static class SimpleReader {
+		private String input;
+		private int index = 0;
+		public SimpleReader(String input) {
+			this.input = input;
+		}
+
+		public boolean hasNext() {
+			return index != input.length();
+		}
+
+		private boolean isDelimiter(char c) {
+			return c == '(' || c == ')';
+		}
+
+		public String next() {
+			char c = input.charAt(index);
+			while (Character.isWhitespace(c)) {
+				++index;
+				if (!hasNext()) {
+					throw new RuntimeException("Reached end of input too soon");
+				}
+				c = input.charAt(index);
+			}
+
+			if (isDelimiter(c)) {
+				++index;
+				return "" + c;
+			}
+
+			String next = "";
+			while (!Character.isWhitespace(c) && !isDelimiter(c) && hasNext()) {
+				next += c;
+				++index;
+				if (!hasNext()) break;
+				c = input.charAt(index);
+			}
+
+			return next;
+		}
 	}
 
 	/**
@@ -261,65 +328,53 @@ public class CondBreakpoint {
 	 * V := 
 	 */
 	public static void parse(String input) {
-		Scanner in = new Scanner(input);			
+		SimpleReader in = new SimpleReader(input);			
 		try {
 			LinkedList<TokInfo> tokens = new LinkedList<TokInfo>();
 
 			// TODO support fields
 
-			// Read the M/F for method or field
-			/*String mf = read(in);
-			boolean isMethod = false;
-			if (!mf.equals("f") && !mf.equals("m")) {
-				throw new Exception("first token must be an m or f");
-			} 
-
-			if (mf.equals("m")) {
-				isMethod = true;
-			}
-			*/
-
 			// Start parsing the rest of the tokens
-			String temp = read(in);	
+			String temp = in.next();
 			String[] classAndName = temp.split("\\.");
 			if (classAndName.length != 2 ||
-				!ClassUtils.isValidClass(classAndName[0]) ||
 				!ClassUtils.isValidMethod(classAndName[0], classAndName[1])) {
-				//(!ClassUtils.isValidMethod(classAndName[0], classAndName[1]) &&
-				// !ClassUtils.isValidField(classAndName[0], classAndName[1]))) {
 				throw new Exception("second token must be class.method");	
 			} 
+
+			// Parse the rest of the tokens	
+			parse(tokens, in);
 
 			if (tokens.isEmpty()) {
 				throw new Exception("Must provide an expression");
 			}
 
-			// Parse the rest of the tokens	
-			parse(tokens, in);
-
-			// Make sure it's surrounded by parens
-			if (tokens.get(0).tok != Token.LPAREN) {
-				tokens.addFirst(mkTok(Token.LPAREN));
-				tokens.addLast(mkTok(Token.RPAREN));
-			}
+			//System.out.println("Parsed tokens: " + tokens.size());
 
 			// Check for balanced parentheses
 			if (!parensMatched(tokens)) {
 				throw new Exception("Unbalanced parentheses");
 			}
 
+			/*for (TokInfo ti : tokens) {
+				System.out.print(ti.tok.name() + " ");	
+			}
+			*/
+
 			// Once we've checked it, create the expression tree
 			Expr root = parsePrimary(tokens);
 
+			//System.out.println("Type checking");
 			// Once we've parsed it, make sure everything conforms,
 			// a very simple type check
 			Method m = ClassUtils.getMethod(classAndName[0], classAndName[1]);
-			Type[] types = m.getGenericParameterTypes();
+			Class<?>[] types = m.getParameterTypes();
 			check(types, root);
 
 		} catch (Exception e) {
 			Debugger.errorln("Failed to parse conditional: " + 
 				e.getMessage());
+			e.printStackTrace();
 			// TODO return something bad
 		}
 	}
@@ -340,9 +395,10 @@ public class CondBreakpoint {
 		return lparens == 0;
 	}
 
-	private static Token check(Type[] types, Expr node) throws Exception {
+	private static Token check(Class<?>[] types, Expr node) throws Exception {
 		// We're using the tokens again because I'm lazy
 		// also AND == BOOLEAN type for now
+		System.out.println("Eval: " + node);
 
 		if (node instanceof IntExpr) {
 			return Token.INT; 
@@ -361,13 +417,14 @@ public class CondBreakpoint {
 			if (ae.index < 0 || ae.index >= types.length) {
 				throw new Exception("Invalid argument index: " + ae.index);
 			}
-			Type t = types[ae.index];
-			if (t == String.class) {
+			Class<?> t = types[ae.index];
+			if (String.class.isAssignableFrom(t)) {
 				return Token.STR;
-			} else if (t == Integer.class) {
+			} else if (Integer.class.isAssignableFrom(t) || 
+						int.class.isAssignableFrom(t)) {
 				return Token.INT;
 			} else {
-				throw new Exception("Can't use arg for this parameter index: " + ae.index + " it has type: " + t);
+				throw new Exception("Can't use arg for this parameter [index: " + ae.index + "] it has type " + t);
 			}
 		} else if (node instanceof BinExpr) {
 			Token left = check(types, ((BinExpr)node).left);
@@ -383,6 +440,7 @@ public class CondBreakpoint {
 					throw new Exception("Or must be applied to two boolean expressions!");
 				}
 			} else if (node instanceof EqExpr) {
+				System.out.println("Left: " + left.name() + " - Right: " + right.name());
 				if (left == right || 
 					(left == Token.STR && right == Token.NULL) ||
 					(left == Token.NULL && right == Token.STR)) {
@@ -418,30 +476,24 @@ public class CondBreakpoint {
 		throw new Exception("Type check missing case");
 	}
 
-	private static void parse(LinkedList<TokInfo> tokens, Scanner in) throws Exception {
+	private static void parse(LinkedList<TokInfo> tokens, SimpleReader in) throws Exception {
 		while (in.hasNext()) {
-			String val = read(in);
+			String val = in.next();
+			//System.out.println("Got token: " + val);
 
-			while (val.startsWith(Token.LPAREN.value())) {
-				tokens.add(mkTok(Token.LPAREN));
-				val = val.substring(1);
-			}
-
-			while (val.endsWith(Token.RPAREN.value())) {
-				tokens.add(mkTok(Token.RPAREN));
-				val = val.substring(0, val.length() - 1);
-			}
-
-			if (val.equals(Token.AND.value())) { tokens.add(mkTok(Token.AND)); }
-			else if (val.equals(Token.OR.value()))  { tokens.add(mkTok(Token.OR));  }
-			else if (val.equals(Token.EQ.value()))  { tokens.add(mkTok(Token.EQ));  }
-			else if (val.equals(Token.NOT.value())) { tokens.add(mkTok(Token.NOT)); }
-			else if (val.equals(Token.GT.value()))  { tokens.add(mkTok(Token.GT));  }
-			else if (val.equals(Token.GTE.value())) { tokens.add(mkTok(Token.GTE)); }
-			else if (val.equals(Token.LT.value()))  { tokens.add(mkTok(Token.LT));  }
-			else if (val.equals(Token.LTE.value())) { tokens.add(mkTok(Token.LTE)); }
+			if (val.equals(Token.LPAREN.value()))   { tokens.add(mkTok(Token.LPAREN)); }
+			else if (val.equals(Token.RPAREN.value())) { tokens.add(mkTok(Token.RPAREN)); }
+			else if (val.equals(Token.AND.value()))  { tokens.add(mkTok(Token.AND));  }
+			else if (val.equals(Token.OR.value()))   { tokens.add(mkTok(Token.OR));   }
+			else if (val.equals(Token.EQ.value()))   { tokens.add(mkTok(Token.EQ));   }
+			else if (val.equals(Token.NOT.value()))  { tokens.add(mkTok(Token.NOT));  }
+			else if (val.equals(Token.GT.value()))   { tokens.add(mkTok(Token.GT));   }
+			else if (val.equals(Token.GTE.value()))  { tokens.add(mkTok(Token.GTE));  }
+			else if (val.equals(Token.LT.value()))   { tokens.add(mkTok(Token.LT));   }
+			else if (val.equals(Token.LTE.value()))  { tokens.add(mkTok(Token.LTE));  }
+			else if (val.equals(Token.NULL.value())) { tokens.add(mkTok(Token.NULL)); }
 			else if (val.equals(Token.ARG.value())) {
-			  	int index = Integer.parseInt(read(in));
+			  	int index = Integer.parseInt(in.next());
 			  	tokens.add(new ArgInfo(index));
 			} else if (Utils.isInteger(val)) {
 				int value = Integer.parseInt(val);
@@ -473,6 +525,8 @@ public class CondBreakpoint {
 			return e;
 		} else if (ti.tok == Token.INT) {
 			return new IntExpr(((IntInfo)ti).value);
+		} else if (ti.tok == Token.ARG) {
+			return new ArgExpr(((ArgInfo)ti).index);
 		} else if (ti.tok == Token.STR) {
 			return new StrExpr(((StrInfo)ti).value);
 		} else if (ti.tok == Token.NULL) {
