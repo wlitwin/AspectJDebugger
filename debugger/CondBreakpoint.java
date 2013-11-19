@@ -340,8 +340,82 @@ public class CondBreakpoint {
 		return lparens == 0;
 	}
 
-	private static void check(Type[] types, Expr root) {
-		
+	private static Token check(Type[] types, Expr node) throws Exception {
+		// We're using the tokens again because I'm lazy
+		// also AND == BOOLEAN type for now
+
+		if (node instanceof IntExpr) {
+			return Token.INT; 
+		} else if (node instanceof StrExpr) {
+			return Token.STR;
+		} else if (node instanceof NullExpr) {
+			return Token.NULL;
+		} else if (node instanceof NotExpr) {
+			Token exprType = check(types, ((NotExpr)node).expr);
+			if (exprType != Token.AND) {
+				throw new Exception("Not must be applied to a boolean expression!");
+			}
+			return Token.AND;
+		} else if (node instanceof ArgExpr) {
+			ArgExpr ae = (ArgExpr) node;
+			if (ae.index < 0 || ae.index >= types.length) {
+				throw new Exception("Invalid argument index: " + ae.index);
+			}
+			Type t = types[ae.index];
+			if (t == String.class) {
+				return Token.STR;
+			} else if (t == Integer.class) {
+				return Token.INT;
+			} else {
+				throw new Exception("Can't use arg for this parameter index: " + ae.index + " it has type: " + t);
+			}
+		} else if (node instanceof BinExpr) {
+			Token left = check(types, ((BinExpr)node).left);
+			Token right = check(types, ((BinExpr)node).right);
+
+			if (node instanceof AndExpr) {
+				if (left != Token.AND || right != Token.AND) {
+					throw new Exception("And must be applied to two boolean expressions!");
+				}
+				return Token.AND;
+			} else if (node instanceof OrExpr) {
+				if (left != Token.AND || right != Token.AND) {
+					throw new Exception("Or must be applied to two boolean expressions!");
+				}
+			} else if (node instanceof EqExpr) {
+				if (left == right || 
+					(left == Token.STR && right == Token.NULL) ||
+					(left == Token.NULL && right == Token.STR)) {
+					return Token.AND;
+				} else {
+					throw new Exception("= must be applied to two expressions of the same type!");
+				}
+			} else if (node instanceof LteExpr) {
+				if (left != right) {
+					throw new Exception("<= must be applied to two expressions of the same type!");
+				}
+				return Token.AND;
+			} else if (node instanceof GteExpr) {
+				if (left != right) {
+					throw new Exception(">= must be applied to two expressions of the same type!");
+				}
+				return Token.AND;
+			} else if (node instanceof LtExpr) {
+				if (left != right) {
+					throw new Exception("< must be applied to two expressions of the same type!");
+				}
+				return Token.AND;
+			} else if (node instanceof GtExpr) {
+				if (left != right) {
+					throw new Exception("> must be applied to two expressions of the same type!");
+				}
+				return Token.AND;
+			} else {
+				throw new Exception("Type check missing BinOp case");
+			}
+		}
+
+		throw new Exception("Type check missing case");
 	}
 
 	private static void parse(LinkedList<TokInfo> tokens, Scanner in) throws Exception {
