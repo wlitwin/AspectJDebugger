@@ -10,7 +10,6 @@ import java.lang.reflect.*;
  */
 public class Debugger {
 	static final Scanner in = new Scanner(System.in);
-
 	static final List<ICommand> commands = new LinkedList<ICommand>();
 	static {
 		commands.add(new HelpCommand());
@@ -78,6 +77,11 @@ public class Debugger {
 		}
 	}
 
+	//=========================================================================
+	// We create our own printing functions so we can output fancy colors on
+	// the terminal. This helps differentiate the debugged programs output
+	// versus the debuggers output.
+	//=========================================================================
 	private static String NORMAL = "\u001B[0m";
 	private static String BOLD_WHITE = "\u001B[37;1m";
 	private static String BOLD_RED = "\u001B[31;1m";
@@ -105,6 +109,9 @@ public class Debugger {
 	public static void errorln(Object s) {
 		error(s.toString() + "\n");
 	}
+
+	//=========================================================================
+	//=========================================================================
 
 	/**
 	 * Displays all commands and their description.
@@ -167,6 +174,9 @@ public class Debugger {
 		}
 	}
 
+	//=========================================================================
+	//=========================================================================
+
 	/**
 	 * Tells the debugger prompt to return by returning True
 	 * in the doWork() function.
@@ -192,6 +202,9 @@ public class Debugger {
 			return true;
 		}
 	}
+
+	//=========================================================================
+	//=========================================================================
 
 	/**
 	 * Lists all the fields of a class.
@@ -233,8 +246,12 @@ public class Debugger {
 
 			return false;
 		}
+
 	}
 
+	//=========================================================================
+	//=========================================================================
+	
 	/**
 	 * Lists all methods of a class.
 	 */
@@ -277,6 +294,9 @@ public class Debugger {
 		}
 	}
 
+	//=========================================================================
+	//=========================================================================
+	
 	/**
 	 * Quits the debugger (and program).
 	 */
