@@ -7,6 +7,10 @@ import java.lang.reflect.*;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.SuppressAjWarnings;
 
+/**
+ * Aspect handling the breakpoint functionality. It has around advice for method calls of up
+ * to 5 arguments as well as field sets and gets.
+ */
 public aspect Breakpoint {
 	static List<String> breakpoints = new ArrayList<String>();
 	static List<String> breakpointsSet = new ArrayList<String>();
@@ -39,12 +43,7 @@ public aspect Breakpoint {
 		execution(* **(..)) && args(o1, o2, o3, o4, o5) && target(t)
 		&& !within(debugger.*);
 
-	pointcut fieldGet(Object t, Object a) :
-		get(* *)
-		&& args(a) && target(t) 
-		&& !within(debugger.*);
-
-	pointcut fieldGet2(Object t) :
+	pointcut fieldGet(Object t) :
 		get(* *)
 		&& target(t) 
 		&& !within(debugger.*);
@@ -60,6 +59,8 @@ public aspect Breakpoint {
 		Debugger.commands.add(new SetArgCommand());
 		Debugger.commands.add(new BreakGetCommand());
 		Debugger.commands.add(new BreakSetCommand());
+		Debugger.commands.add(new CondBreakpoint.BreakCondCommand());
+		Debugger.commands.add(new CondBreakpoint.BreakCondRemoveCommand());
 	}
 
 
@@ -128,7 +129,15 @@ public aspect Breakpoint {
 	}
 
 	/**
-	 * 
+	 * Called when the fieldGet around advice happens. This will determine
+	 * if the debugger prompt should be invoked. It checks the breakpointsGet
+	 * list to see if the string class.field is in it.
+	 *
+	 * @param target The object being called
+	 *
+	 * @param joinPoint Information about the field and object
+	 *
+	 * @return The modified parameters to this method
 	 */
 	private Object[] breakGet(Object target, Object joinPoint) {
 		JoinPoint jp = (JoinPoint) joinPoint;
@@ -165,6 +174,17 @@ public aspect Breakpoint {
 		return new Object[] { false, null };
 	}
 
+	/**
+	 * Called when the fieldSet around advice happens. This will determine
+	 * if the debugger prompt should be invoked. It checks the breakpointsSet
+	 * list to see if the string class.field is in it.
+	 *
+	 * @param target The object being called
+	 *
+	 * @param joinPoint Information about the field and object
+	 *
+	 * @return A possibly different value to set the field to
+	 */
 	private Object breakSet(Object target, Object joinPoint, Object arg) {
 		JoinPoint jp = (JoinPoint) joinPoint;
 		breakJoinPoint = jp;
@@ -199,6 +219,18 @@ public aspect Breakpoint {
 		return arg;
 	}
 
+	/**
+	 * Called when the methodCall around advice is invoked. If the class and method
+	 * are in the breakpoints list then the debugger prompt will be invoked.
+	 *
+	 * @param target The object being called
+	 *
+	 * @param joinPoint Context about the call
+	 *
+	 * @param args The arguments to the method
+	 *
+	 * @return Possibly changed arguments to the method
+	 */
 	private Object[] breakPoint(Object target, Object joinPoint, Object[] args) {
 		JoinPoint jp = (JoinPoint) joinPoint;
 		breakJoinPoint = jp;
@@ -230,8 +262,9 @@ public aspect Breakpoint {
 		return args;
 	}
 
+	// Handles fieldGet
 	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t) : fieldGet2(t) {
+	Object around(Object t) : fieldGet(t) {
 		Object[] ret = breakGet(t, thisJoinPoint);
 		if (ret[0].equals(true)) {
 			return ret[1];
@@ -240,12 +273,16 @@ public aspect Breakpoint {
 		return proceed(t);
 	}
 
+	// Handles fieldSet
 	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object t, Object a) : fieldSet(t, a) {
 		Object new_arg = breakSet(t, thisJoinPoint, a);
 		return proceed(t, new_arg);
 	}
 
+	//=========================================================================
+	// The around() blocks below handle method calls of varying arities
+	//=========================================================================
 	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object t) : methodCall(t) {
 		breakPoint(t, thisJoinPoint, new Object[] { });
