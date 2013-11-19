@@ -655,9 +655,11 @@ public class CondBreakpoint {
 	 *
 	 * @param min_precedence The current minimum precedence, used to determine when to reduce or shift
 	 *
+	 * @throws Exception Some of the methods this calls throw exceptions
+	 *
 	 * @return A correctly formed expression tree
 	 */
-	private static Expr parseExpression1(LinkedList<TokInfo> tokens, Expr lhs, int min_precedence) {
+	private static Expr parseExpression1(LinkedList<TokInfo> tokens, Expr lhs, int min_precedence) throws Exception {
 		TokInfo ti = tokens.get(0);
 		while (!tokens.isEmpty() && ti.tok.isBinOp() && ti.tok.precedence() >= min_precedence) {
 			TokInfo op = tokens.remove(0);	
