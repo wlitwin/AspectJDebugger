@@ -11,6 +11,7 @@ public aspect Breakpoint {
 	static List<String> breakpoints = new ArrayList<String>();
 	static List<String> breakpointsSet = new ArrayList<String>();
 	static List<String> breakpointsGet = new ArrayList<String>();
+	static Map<String, CondBreakpoint> condBreakpoints = new HashMap<String, CondBreakpoint>();
 
 	static boolean atBreakpointMethod = false;
 	static boolean atBreakpointField = false;
@@ -203,7 +204,13 @@ public aspect Breakpoint {
 		breakJoinPoint = jp;
 		String[] all = classNameAndCombined(jp);
 
-		if (breakpoints.contains(all[2])) {
+		boolean condBreakpoint = false;
+		if (condBreakpoints.containsKey(all[2])) {
+			CondBreakpoint cb = condBreakpoints.get(all[2]);
+			condBreakpoint = cb.evaluate(args);
+		}
+
+		if (breakpoints.contains(all[2]) || condBreakpoint) {
 			// Enter the debugger prompt
 			atBreakpointMethod = true;
 			atBreakpointField = false;

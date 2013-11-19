@@ -1,7 +1,6 @@
 package debugger;
 
-import java.util.Scanner;
-import java.util.LinkedList;
+import java.util.*;
 import java.lang.reflect.*;
 import java.util.regex.Pattern;
 
@@ -9,8 +8,23 @@ public class CondBreakpoint {
 
 	static {
 		Debugger.commands.add(new BreakCondCommand());
+		Debugger.commands.add(new BreakCondRemove());
 	}
 
+	private Expr root;
+	private String combinedName;
+	public CondBreakpoint(String combinedName, Expr root) {
+		this.root = root;
+		this.combinedName = combinedName;
+	}
+
+	public boolean evaluate(Object[] args) {
+		return (Boolean)root.evaluate(args);
+	}
+
+	/**
+	 *
+	 */
 	static class BreakCondCommand implements ICommand {
 		public boolean matches(String input) {
 			return input.toLowerCase().equals("breakif");	
@@ -27,7 +41,62 @@ public class CondBreakpoint {
 		public boolean doWork(Scanner in) {
 			String input = in.nextLine();
 
-			parse(input);			
+			CondBreakpoint cb = parse(input);
+			if (cb != null) {
+				Map<String, CondBreakpoint> bpMap = Breakpoint.condBreakpoints;
+				if (bpMap.containsKey(cb.combinedName)) {
+					Debugger.println("Updating breakpoint");
+				} else {
+					Debugger.println("Adding breakpoint");
+				}
+
+				bpMap.put(cb.combinedName, cb);
+			}
+
+			return false;
+		}
+	}
+
+	static class BreakCondRemove implements ICommand {
+		public boolean matches(String input) {
+			return input.toLowerCase().equals("breakifremove");
+		}
+
+		public String getHelp() {
+			return "removes a conditional breakpoint";
+		}
+
+		public String getCommand() {
+			return "breakifremove class.method";
+		}
+
+		public boolean doWork(Scanner in) {
+			String line = in.nextLine();
+			String[] can = line.split("\\.");
+			if (can.length != 2) {
+				Debugger.errorln("Invalid usage: " + getCommand());
+				return false;
+			}
+
+			if (!ClassUtils.isValidClass(can[0])) {
+				Debugger.errorln("No such class: " + can[0]);
+				return false;
+			}
+
+			if (!ClassUtils.isValidMethod(can[0], can[1])) {
+				Debugger.errorln("Class: " + can[0] + " has no such method: " + can[1]);
+				return false;
+			}
+
+			Map<String, CondBreakpoint> bpMap = Breakpoint.condBreakpoints;
+			String combined = can[0] + "." + can[1];
+			if (!bpMap.containsKey(combined)) {
+				Debugger.errorln("No conditional breakpoint for: " + combined);
+				return false;
+			}
+
+			bpMap.remove(combined);
+			Debugger.println("Removed breakpoint: " + combined);
 
 			return false;
 		}
@@ -45,7 +114,7 @@ public class CondBreakpoint {
 		public Expr(Token tok) {
 			this.tok = tok;
 		}
-		public abstract Object evaluate();
+		public abstract Object evaluate(Object[] args);
 	}
 
 	/**
@@ -69,8 +138,8 @@ public class CondBreakpoint {
 			super(Token.AND, l, r);
 		}
 
-		public Object evaluate() {
-			return (Boolean)left.evaluate()  && (Boolean)right.evaluate();
+		public Object evaluate(Object[] args) {
+			return (Boolean)left.evaluate(args)  && (Boolean)right.evaluate(args);
 		}
 	}
 
@@ -82,8 +151,8 @@ public class CondBreakpoint {
 			super(Token.OR, l, r);
 		}
 
-		public Object evaluate() {
-			return (Boolean)left.evaluate() || (Boolean)right.evaluate();
+		public Object evaluate(Object[] args) {
+			return (Boolean)left.evaluate(args) || (Boolean)right.evaluate(args);
 		}
 	}
 
@@ -92,10 +161,11 @@ public class CondBreakpoint {
 			super(Token.GT, l, r);
 		}
 
-		public Object evaluate() {
-			Object lVal = left.evaluate();
-			Object rVal = right.evaluate();
-			return null;
+		public Object evaluate(Object[] args) {
+			Comparable lVal = (Comparable)left.evaluate(args);
+			Comparable rVal = (Comparable)right.evaluate(args);
+
+			return lVal.compareTo(rVal) > 0;
 		}
 	}
 
@@ -104,10 +174,11 @@ public class CondBreakpoint {
 			super(Token.GTE, l, r);
 		}
 
-		public Object evaluate() {
-			Object lVal = left.evaluate();
-			Object rVal = right.evaluate();
-			return null;
+		public Object evaluate(Object[] args) {
+			Comparable lVal = (Comparable)left.evaluate(args);
+			Comparable rVal = (Comparable)right.evaluate(args);
+
+			return lVal.compareTo(rVal) >= 0;
 		}
 	}
 
@@ -116,10 +187,11 @@ public class CondBreakpoint {
 			super(Token.LT, l, r);
 		}
 
-		public Object evaluate() {
-			Object lVal = left.evaluate();
-			Object rVal = right.evaluate();
-			return null;
+		public Object evaluate(Object[] args) {
+			Comparable lVal = (Comparable)left.evaluate(args);
+			Comparable rVal = (Comparable)right.evaluate(args);
+
+			return lVal.compareTo(rVal) < 0;
 		}
 	}
 
@@ -128,10 +200,11 @@ public class CondBreakpoint {
 			super(Token.LTE, l, r);
 		}
 
-		public Object evaluate() {
-			Object lVal = left.evaluate();
-			Object rVal = right.evaluate();
-			return null;
+		public Object evaluate(Object[] args) {
+			Comparable lVal = (Comparable)left.evaluate(args);
+			Comparable rVal = (Comparable)right.evaluate(args);
+
+			return lVal.compareTo(rVal) <= 0;
 		}
 	}
 
@@ -140,10 +213,11 @@ public class CondBreakpoint {
 			super(Token.EQ, l, r);
 		}
 
-		public Object evaluate() {
-			Object lVal = left.evaluate();
-			Object rVal = right.evaluate();
-			return null;
+		public Object evaluate(Object[] args) {
+			Comparable lVal = (Comparable)left.evaluate(args);
+			Comparable rVal = (Comparable)right.evaluate(args);
+
+			return lVal.compareTo(rVal) == 0;
 		}
 	}
 
@@ -154,8 +228,8 @@ public class CondBreakpoint {
 			this.index = index;
 		}
 
-		public Object evaluate() {
-			return null;
+		public Object evaluate(Object[] args) {
+			return args[index];
 		}
 	}
 
@@ -166,8 +240,8 @@ public class CondBreakpoint {
 			this.value = value;
 		}
 
-		public Object evaluate() {
-			return null;
+		public Object evaluate(Object[] args) {
+			return value;
 		}
 	}
 
@@ -178,8 +252,8 @@ public class CondBreakpoint {
 			this.value = value;
 		}
 
-		public Object evaluate() {
-			return null;
+		public Object evaluate(Object[] args) {
+			return value;
 		}
 	}
 
@@ -187,7 +261,8 @@ public class CondBreakpoint {
 		public NullExpr() { 
 			super(Token.NULL);
 		}
-		public Object evaluate() {
+
+		public Object evaluate(Object[] args) {
 			return null;
 		}
 	}
@@ -202,8 +277,8 @@ public class CondBreakpoint {
 			this.expr = e;
 		}
 
-		public Object evaluate() {
-			return null;
+		public Object evaluate(Object[] args) {
+			return !((Boolean)expr.evaluate(args));
 		}
 	}
 
@@ -339,7 +414,7 @@ public class CondBreakpoint {
 	 * E := E and E | E or E | not E | V
 	 * V := 
 	 */
-	public static void parse(String input) {
+	public static CondBreakpoint parse(String input) {
 		SimpleReader in = new SimpleReader(input);			
 		try {
 			LinkedList<TokInfo> tokens = new LinkedList<TokInfo>();
@@ -396,12 +471,14 @@ public class CondBreakpoint {
 
 			Debugger.println(exprToInfix(root));
 
+			return new CondBreakpoint(classAndName[0] + "." + classAndName[1], root);
 		} catch (Exception e) {
 			Debugger.errorln("Failed to parse conditional: " + 
 				e.getMessage());
-			e.printStackTrace();
-			// TODO return something bad
+			//e.printStackTrace();
 		}
+
+		return null;
 	}
 
 	private static boolean parensMatched(LinkedList<TokInfo> tokens) {
@@ -430,7 +507,7 @@ public class CondBreakpoint {
 	private static String exprToInfix(Expr node) {
 		switch (node.tok) {
 			case INT:  return "" + ((IntExpr)node).value;
-			case STR:  return ((StrExpr)node).value;
+			case STR:  return "\"" + ((StrExpr)node).value + "\"";
 			case NULL: return "null";
 			case ARG:  return "arg[" + ((ArgExpr)node).index + "]";
 			case NOT:  return "not (" + exprToInfix(((NotExpr)node).expr) + ")";
