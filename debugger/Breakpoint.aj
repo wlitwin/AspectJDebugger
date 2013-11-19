@@ -7,7 +7,7 @@ import java.lang.reflect.*;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.SuppressAjWarnings;
 
-privileged aspect Breakpoint {
+public aspect Breakpoint {
 	static List<String> breakpoints = new ArrayList<String>();
 	static List<String> breakpointsSet = new ArrayList<String>();
 	static List<String> breakpointsGet = new ArrayList<String>();
@@ -53,6 +53,7 @@ privileged aspect Breakpoint {
 		&& args(a) && target(t) 
 		&& !within(debugger.*);
 
+	// Add the commands this Aspect offers
 	static {
 		Debugger.commands.add(new BreakpointCommand());
 		Debugger.commands.add(new SetArgCommand());
@@ -60,259 +61,63 @@ privileged aspect Breakpoint {
 		Debugger.commands.add(new BreakSetCommand());
 	}
 
-	static class BreakpointCommand implements ICommand {
-		public boolean matches(String input) {
-			return input.toLowerCase().equals("break");
-		}
 
-		public String getHelp() {
-			return "stop execution when the specified " + 
-					"method is called";
-		}
-
-		public String getCommand() {
-			return "break class.method";
-		}
-
-		public boolean doWork(Scanner in) {
-			String line = in.nextLine().trim();
-			String[] classAndMethod = line.split("\\.");
-			if (classAndMethod.length < 2) {
-				System.out.println("Invalid, usage is - break class.method");	
-				return false;
-			}
-
-			String clazz = classAndMethod[0];
-			String method = classAndMethod[1];
-
-			if (!ClassUtils.isValidClass(clazz)) {
-				System.out.println("Couldn't find class: " + clazz);
-				return false;
-			}
-
-			if (!ClassUtils.isValidMethod(clazz, method)) {
-				System.out.println("Couldn't find method: " + method);
-				return false;
-			}
-
-			String combined = clazz + "." + method;
-			if (breakpoints.contains(combined)) {
-				System.out.println("Removed breakpoint: " + combined);	
-				breakpoints.remove(combined);
-			} else {
-				System.out.println("Added breakpoint: " + combined);
-				breakpoints.add(combined);
-			}
-			
-			return false;
-		}
-	}
-
-	static class BreakSetCommand implements ICommand {
-		public boolean matches(String input) {
-			return input.toLowerCase().equals("breakset");
-		}
-
-		public String getHelp() {
-			return "break on a field set";
-		}
-
-		public String getCommand() {
-			return "breakset class.field";
-		}
-
-		public boolean doWork(Scanner in) {
-			String line = in.nextLine().trim();
-
-			String[] classAndField = line.split("\\.");			
-			if (classAndField.length < 2) {
-				System.out.println("Invalid, usage is - " + getCommand());
-				return false;
-			}
-
-			String clazz = classAndField[0];
-			String field = classAndField[1];
-
-			if (!ClassUtils.isValidClass(clazz)) {
-				System.out.println("Couldn't find class: " + clazz);
-				return false;
-			}
-
-			if (!ClassUtils.isValidField(clazz, field)) {
-				System.out.println("Couldn't find field: " + field);
-				return false;
-			}
-
-			String combined = clazz + "." + field;
-			if (breakpointsSet.contains(combined)) {
-				System.out.println("Removed breakpoint: " + combined);
-				breakpointsSet.remove(combined);
-			} else {
-				System.out.println("Added breakpoint: " + combined);
-				breakpointsSet.add(combined);
-			}
-
-			return false;
-		}
-	}
-
-	static class BreakGetCommand implements ICommand {
-		public boolean matches(String input) {
-			return input.toLowerCase().equals("breakget");
-		}
-
-		public String getHelp() {
-			return "break on a field get";
-		}
-
-		public String getCommand() {
-			return "breakget class.field";
-		}
-
-		public boolean doWork(Scanner in) {
-			String line = in.nextLine().trim();
-
-			String[] classAndField = line.split("\\.");			
-			if (classAndField.length < 2) {
-				System.out.println("Invalid, usage is - " + getCommand());
-				return false;
-			}
-
-			String clazz = classAndField[0];
-			String field = classAndField[1];
-
-			if (!ClassUtils.isValidClass(clazz)) {
-				System.out.println("Couldn't find class: " + clazz);
-				return false;
-			}
-
-			if (!ClassUtils.isValidField(clazz, field)) {
-				System.out.println("Couldn't find field: " + field);
-				return false;
-			}
-
-			String combined = clazz + "." + field;
-			if (breakpointsGet.contains(combined)) {
-				System.out.println("Removed breakpoint: " + combined);
-				breakpointsGet.remove(combined);
-			} else {
-				System.out.println("Added breakpoint: " + combined);
-				breakpointsGet.add(combined);
-			}
-
-			return false;
-		}
-	}
-
-	static class SetArgCommand implements ICommand {
-		public boolean matches(String input) {
-			return input.toLowerCase().equals("setarg");
-		}
-
-		public String getHelp() {
-			return "change an argument value, only valid during a breakpoint";
-		}
-
-		public String getCommand() {
-			return "setarg num val";
-		}
-
-		public boolean doWork(Scanner in) {
-			String line = in.nextLine().trim();
-
-			if (!atBreakpointMethod && !atBreakpointField) {
-				System.out.println("This command is only valid during a breakpoint");
-				return false;
-			}
-
-			if (breakArgs == null) {
-				System.out.println("-> SetArgs - breakArgs is null!");
-				return false;
-			}
-
-			String[] input = line.split("\\s+");
-			if (input.length < 2) {
-				System.out.println("Requires two arguments - " + getCommand());
-				return false;
-			}
-
-			if (!Utils.isInteger(input[0])) {
-				System.out.println("-> first parameter is not an integer");
-				return false;
-			}
-
-			int arg_index = Integer.parseInt(input[0]);
-			if (arg_index < 0 || arg_index >= breakArgs.length) {
-				System.out.println("-> arg number is out of bounds");
-				return false;
-			}
-
-			// Determine if the second parameter is a String or an integer
-			Class<?> argClass = breakArgs[arg_index].getClass();
-			Class<?> intClass = Integer.class;
-			Class<?> strClass = String.class;
-			if (Utils.isInteger(input[1])) {
-				if (!intClass.isAssignableFrom(argClass)) {
-					System.out.println("Cannot assign an integer to a " + 
-						breakArgs[arg_index].getClass().getName());
-					return false;
-				} else {
-					breakArgs[arg_index] = Integer.parseInt(input[1]);
-				}
-			} else { // Try as a String
-				if (!strClass.isAssignableFrom(argClass)) {
-					System.out.println("Cannot assign a string to a " +
-						breakArgs[arg_index].getClass().getName());
-					return false;
-				} else {
-					breakArgs[arg_index] = input[1];
-				}
-			}
-
-			// Print the new values
-			if (atBreakpointMethod) {
-				printArguments(breakMethod, breakArgs);
-			} else if (atBreakpointField) {
-				System.out.println("-> New Value: " + breakArgs[arg_index]);
-			}
-
-			return false;
-		}
-
-	}
-
+	/**
+	 * Helper method to print the arguments of a method. Should only be called
+	 * during a method breakpoint.
+	 *
+	 * @param m The method object
+	 *
+	 * @param args The arguments to this method object
+	 */
 	static void printArguments(Method m, Object[] args) {
 		if (!atBreakpointMethod) {
-			System.out.println("-> printArguments() - invalid call");
+			Debugger.errorln("-> printArguments() - invalid call");
 			return;
 		}
 
 		if (args.length == 0) {
-			System.out.println("-> No arguments");
+			Debugger.println("-> No arguments");
 		} else {
 			Class<?>[] paramTypes = m.getParameterTypes();
 			if (paramTypes.length != args.length) {
 				System.err.println("Params don't match!?");
 				System.exit(1);
 			}
-			System.out.println("-> Current arguments: ");
+			Debugger.println("-> Current arguments: ");
 			for (int i = 0; i < args.length; ++i) {
-				System.out.println("->  Param " + i + 
+				Debugger.println("->  Param " + i + 
 						" - " + paramTypes[i].getName() +
 						" - " + args[i]);
 			}
 		}
 	}
 
+	/**
+	 * Prints where the breakpoint happend in the source code.
+	 *
+	 * @param jp The joinpoint
+	 *
+	 * @param target The object that is being intercepted
+	 */
 	static void printLocation(JoinPoint jp, Object target) {
 		String fileName = jp.getSourceLocation().getFileName();
 		String lineNumber = "" + jp.getSourceLocation().getLine();
 		int hashCode = System.identityHashCode(target);
-		System.out.println("-> [" + hashCode + "] Breakpoint: "
+		Debugger.println("-> [" + hashCode + "] Breakpoint: "
 				+ jp.getSignature().toString()
 				+ "\n-> at " + fileName + ":" + lineNumber);
 	}
 
+	/**
+	 * Extracts the class name and field or method name from a JoinPoint.
+	 * 
+	 * @param jp The join point
+	 *
+	 * @return A three element array where the first element is the class
+	 * name, the second is the field/method name and the third is the
+	 * class and field/method named combined with a '.'
+	 */
 	static String[] classNameAndCombined(JoinPoint jp) {
 		String clazz = jp.getSignature().getDeclaringType().getName();
 		String name = jp.getSignature().getName();
@@ -321,13 +126,19 @@ privileged aspect Breakpoint {
 		return new String[] { clazz, name, combined };
 	}
 
-	Object[] breakGet(Object target, Object joinPoint) {
+	/**
+	 * 
+	 */
+	private Object[] breakGet(Object target, Object joinPoint) {
 		JoinPoint jp = (JoinPoint) joinPoint;
 		breakJoinPoint = jp;
 		String[] all = classNameAndCombined(jp);
 		
 		if (breakpointsGet.contains(all[2])) {
-			System.out.println("-> Get");
+			atBreakpointMethod = false;
+			atBreakpointField = true;
+
+			Debugger.println("-> Get");
 			printLocation(jp, target);
 
 			Field f = ClassUtils.getField(all[0], all[1]);	
@@ -335,13 +146,10 @@ privileged aspect Breakpoint {
 			Object o = null;
 			try {
 				o = f.get(target);
-				System.out.println("-> Cur Value: " + o);
+				Debugger.println("-> Cur Value: " + o);
 			} catch (IllegalAccessException iae) {
-				System.out.println("-> Cannot access field value");
+				Debugger.errorln("-> Cannot access field value");
 			}
-
-			atBreakpointMethod = false;
-			atBreakpointField = true;
 
 			breakArgs = new Object[] { o };
 			Debugger.prompt();
@@ -356,27 +164,27 @@ privileged aspect Breakpoint {
 		return new Object[] { false, null };
 	}
 
-	Object breakSet(Object target, Object joinPoint, Object arg) {
+	private Object breakSet(Object target, Object joinPoint, Object arg) {
 		JoinPoint jp = (JoinPoint) joinPoint;
 		breakJoinPoint = jp;
 		String[] all = classNameAndCombined(jp);
 		
 		if (breakpointsSet.contains(all[2])) {
-			System.out.println("-> Set");
+			atBreakpointMethod = false;
+			atBreakpointField = true;
+
+			Debugger.println("-> Set");
 			printLocation(jp, target);
 
 			Field f = ClassUtils.getField(all[0], all[1]);	
 			f.setAccessible(true);
 			try {
 				Object o = f.get(target);
-				System.out.println("-> Cur Value: " + o);
-				System.out.println("-> New Value: " + arg);
+				Debugger.println("-> Cur Value: " + o);
+				Debugger.println("-> New Value: " + arg);
 			} catch (IllegalAccessException iae) {
-				System.out.println("-> Cannot access field value");
+				Debugger.errorln("-> Cannot access field value");
 			}
-
-			atBreakpointMethod = false;
-			atBreakpointField = true;
 
 			breakArgs = new Object[] { arg };
 			Debugger.prompt();
@@ -390,20 +198,20 @@ privileged aspect Breakpoint {
 		return arg;
 	}
 
-	Object[] breakPoint(Object target, Object joinPoint, Object[] args) {
+	private Object[] breakPoint(Object target, Object joinPoint, Object[] args) {
 		JoinPoint jp = (JoinPoint) joinPoint;
 		breakJoinPoint = jp;
 		String[] all = classNameAndCombined(jp);
 
 		if (breakpoints.contains(all[2])) {
+			// Enter the debugger prompt
+			atBreakpointMethod = true;
+			atBreakpointField = false;
+
 			// Get the parameter types
 			breakMethod = ClassUtils.getMethod(all[0], all[1]);
 			printLocation(jp, target);
 			printArguments(breakMethod, args);
-
-			// Enter the debugger prompt
-			atBreakpointMethod = true;
-			atBreakpointField = false;
 
 			breakArgs = args;
 			Debugger.prompt();
