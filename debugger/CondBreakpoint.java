@@ -1,8 +1,8 @@
 package debugger;
 
-import java.util.List;
 import java.util.Scanner;
 import java.util.LinkedList;
+import java.lang.reflect.*;
 
 public class CondBreakpoint {
 	/**
@@ -167,28 +167,30 @@ public class CondBreakpoint {
 	//=========================================================================
 
 	enum Token {
-		AND("and", true),
-		OR("or", true),
-		NOT("not", false),
-		ARG("arg", false),
-		EQ("=", true),
-		LT("<", true),
-		LTE("<=", true),
-		GT(">", true),
-		GTE(">=", true),
-		LPAREN("(", false),
-		RPAREN(")", false),
-		NULL("null", false),
-		INT("", false),
-		STR("", false);
+		AND("and", true, false, 0),
+		OR("or", true, false, 0),
+		NOT("not", false, false, 3),
+		ARG("arg", false, true, 3),
+		EQ("=", true, false, 2),
+		LT("<", true, false, 2),
+		LTE("<=", true, false, 2),
+		GT(">", true, false, 2),
+		GTE(">=", true, false, 2),
+		LPAREN("(", false, false, 3),
+		RPAREN(")", false, false, 3),
+		NULL("null", false, true, 3),
+		INT("", false, true, 3),
+		STR("", false, true, 3);
 
 		private final String value;
 		private boolean isBinOp;
 		private boolean isValue;
-		Token(String s, boolean binop, boolean value) {
+		private int precedence;
+		Token(String s, boolean binop, boolean value, int precedence) {
 			this.value = s;
 			this.isBinOp = binop;
 			this.isValue = value;
+			this.precedence = precedence;
 		}
 
 		public boolean isBinOp() {
@@ -196,6 +198,11 @@ public class CondBreakpoint {
 		}
 
 		public boolean isValue() {
+			return isValue;
+		}
+
+		public int precedence() {
+			return precedence;
 		}
 
 		public String value() {
@@ -256,7 +263,7 @@ public class CondBreakpoint {
 	public static void parse(String input) {
 		Scanner in = new Scanner(input);			
 		try {
-			List<TokInfo> tokens = new LinkedList<TokInfo>();
+			LinkedList<TokInfo> tokens = new LinkedList<TokInfo>();
 
 			// TODO support fields
 
@@ -277,32 +284,38 @@ public class CondBreakpoint {
 			String[] classAndName = temp.split("\\.");
 			if (classAndName.length != 2 ||
 				!ClassUtils.isValidClass(classAndName[0]) ||
-				!ClassUtils.isValidMethod(classAndName[1])) {
+				!ClassUtils.isValidMethod(classAndName[0], classAndName[1])) {
 				//(!ClassUtils.isValidMethod(classAndName[0], classAndName[1]) &&
 				// !ClassUtils.isValidField(classAndName[0], classAndName[1]))) {
 				throw new Exception("second token must be class.method");	
 			} 
 
-			Method m = ClassUtils.getMethod(classAndName[0], classAndName[1]);
-
-			// Parse the rest of the tokens	
-			parse(tokens, in);
-
 			if (tokens.isEmpty()) {
 				throw new Exception("Must provide an expression");
 			}
 
+			// Parse the rest of the tokens	
+			parse(tokens, in);
+
 			// Make sure it's surrounded by parens
-			if (tokens.get(0) != Token.LPAREN) {
-				tokens.insert(0, mkTok(Token.LPAREN));
-				tokens.insert(tokens.size()-1, mkTok(Token.RPAREN));
+			if (tokens.get(0).tok != Token.LPAREN) {
+				tokens.addFirst(mkTok(Token.LPAREN));
+				tokens.addLast(mkTok(Token.RPAREN));
+			}
+
+			// Check for balanced parentheses
+			if (!parensMatched(tokens)) {
+				throw new Exception("Unbalanced parentheses");
 			}
 
 			// Once we've checked it, create the expression tree
-			Expr root = makeTree(tokens);
+			Expr root = parsePrimary(tokens);
 
-			// Once we've parsed it, make sure everything conforms
-			check(root);
+			// Once we've parsed it, make sure everything conforms,
+			// a very simple type check
+			Method m = ClassUtils.getMethod(classAndName[0], classAndName[1]);
+			Type[] types = m.getGenericParameterTypes();
+			check(types, root);
 
 		} catch (Exception e) {
 			Debugger.errorln("Failed to parse conditional: " + 
@@ -311,7 +324,27 @@ public class CondBreakpoint {
 		}
 	}
 
-	private static void parse(List<TokInfo> tokens, Scanner in) throws Exception {
+	private static boolean parensMatched(LinkedList<TokInfo> tokens) {
+		int lparens = 0;	
+		for (TokInfo ti : tokens) {
+			if (ti.tok == Token.LPAREN) {
+				++lparens;
+			} else if (ti.tok == Token.RPAREN) {
+				--lparens;
+				if (lparens < 0) {
+					return false;
+				}
+			}
+		}
+
+		return lparens == 0;
+	}
+
+	private static void check(Type[] types, Expr root) {
+		
+	}
+
+	private static void parse(LinkedList<TokInfo> tokens, Scanner in) throws Exception {
 		while (in.hasNext()) {
 			String val = read(in);
 
@@ -347,54 +380,59 @@ public class CondBreakpoint {
 		}
 	}
 
-	private static void check(Expr root) {
-		
+	private static Expr parseExpression(LinkedList<TokInfo> tokens) throws Exception {
+		return parseExpression1(tokens, parsePrimary(tokens), 0);
 	}
 
-	private static Expr makeTree(List<TokInfo> tokens) throws Exception {
-		return null;
-	}
-
-	private static Expr tokensToTree(List<TokInfo> tokens) throws Exception {
+	private static Expr parsePrimary(LinkedList<TokInfo> tokens) throws Exception {
 		if (tokens.isEmpty()) {
 			throw new Exception("Parse error");
 		}
 
-		if (tokens.get(0).tok == Token.LPAREN || tokens.get(0).tok == Token.RPAREN) {
-			throw new Exception("Internal parser error");
+		TokInfo ti = tokens.remove(0);
+		if (ti.tok == Token.LPAREN) {
+			Expr e = parseExpression(tokens);
+			ti = tokens.remove(0);
+			if (ti.tok != Token.RPAREN) {
+				throw new Exception("Bad parens");
+			}
+			return e;
+		} else if (ti.tok == Token.INT) {
+			return new IntExpr(((IntInfo)ti).value);
+		} else if (ti.tok == Token.STR) {
+			return new StrExpr(((StrInfo)ti).value);
+		} else if (ti.tok == Token.NULL) {
+			return new NullExpr();
+		} else if (ti.tok == Token.NOT) {
+			return new NotExpr(parseExpression(tokens));
 		}
 
-		// If we encounter a LPAREN we have to do something special
-		// Need to look ahead for binary expressions			
-		if (tokens.size() > 1 && tokens.get(1).tok.isBinOp()) {
-			Expr left = tokensToTree(tokens);
-			TokInfo ti = tokens.remove(0);
-			Expr right = tokensToTree(tokens);
-			Expr e = null;
-			switch (ti.tok)
-			{
-				case AND: return new AndExpr(left, right);
-				case OR:  return new OrExpr(left, right);
-				case EQ:  return new EqExpr(left, right);
-				case LT:  return new LtExpr(left, right);
-				case GT:  return new GtExpr(left, right);
-				case GTE: return new GteExpr(left, right);
-				case LTE: return new LteExpr(left, right);
+		throw new Exception("Parse Primary - Parse Error");
+	}
+
+	private static Expr parseExpression1(LinkedList<TokInfo> tokens, Expr lhs, int min_precedence) throws Exception {
+		TokInfo ti = tokens.get(0);
+		while (ti.tok.isBinOp() && ti.tok.precedence() >= min_precedence) {
+			TokInfo op = tokens.remove(0);	
+			Expr rhs = parsePrimary(tokens);
+			ti = tokens.get(0);
+			while (ti.tok.isBinOp() && ti.tok.precedence() > op.tok.precedence()) {
+				TokInfo lookAhead = tokens.get(0);
+				rhs = parseExpression1(tokens, rhs, lookAhead.tok.precedence());
+			}
+			switch (op.tok) {
+				case AND: lhs = new AndExpr(lhs, rhs); break;
+				case OR:  lhs = new OrExpr(lhs, rhs);  break;
+				case EQ:  lhs = new EqExpr(lhs, rhs);  break;
+				case LT:  lhs = new LtExpr(lhs, rhs);  break;
+				case GT:  lhs = new GtExpr(lhs, rhs);  break;
+				case LTE: lhs = new LteExpr(lhs, rhs); break;
+				case GTE: lhs = new GteExpr(lhs, rhs); break;
+				default:
+					throw new Exception("Unhandled binOp case");
 			}
 		}
 
-		// We're not a binary expression
-		TokInfo ti = tokens.remove(0);
-		// TODO finish
-		switch (ti.tok)
-		{
-			case NOT:  return new NotExpr(tokensToTree(tokens));
-			case NULL: return new NullExpr();
-			case ARG:  return new ArgExpr(((ArgInfo)ti).index);
-			case INT:  return new IntExpr(((IntInfo)ti).value);
-			case STR:  return new StrExpr(((StrInfo)ti).value);
-			default:
-				throw new Exception("Error parsing tree");
-		}
+		return lhs;
 	}
 }
