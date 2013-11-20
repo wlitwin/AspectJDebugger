@@ -3,6 +3,8 @@ package debugger;
 import java.util.*;
 import java.lang.ref.*;
 
+import org.aspectj.lang.annotation.SuppressAjWarnings;
+
 public aspect Instances {
 	static {
 		Debugger.commands.add(new InstancesCommand());
@@ -27,6 +29,7 @@ public aspect Instances {
 		}
 	}
 
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	before(Object o) : onNew(o) {
 		Set<WeakReference> hs = null;
 
