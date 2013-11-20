@@ -1,0 +1,14 @@
+<aspectj>
+<aspects>
+<aspect name="debugger.Instances"/>
+<aspect name="debugger.Debug"/>
+<aspect name="debugger.StackTrace"/>
+<aspect name="debugger.VariableWatcher"/>
+<aspect name="debugger.Replacer"/>
+<aspect name="debugger.Breakpoint"/>
+</aspects>
+<weaver options="">
+<exclude within="com..*"></exclude>
+</weaver>
+</aspectj>
+
