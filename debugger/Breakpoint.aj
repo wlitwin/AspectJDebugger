@@ -11,7 +11,7 @@ import org.aspectj.lang.annotation.SuppressAjWarnings;
  * Aspect handling the breakpoint functionality. It has around advice for method calls of up
  * to 5 arguments as well as field sets and gets.
  */
-public aspect Breakpoint {
+privileged aspect Breakpoint {
 	static List<String> breakpoints = new ArrayList<String>();
 	static List<String> breakpointsSet = new ArrayList<String>();
 	static List<String> breakpointsGet = new ArrayList<String>();
@@ -25,22 +25,41 @@ public aspect Breakpoint {
 
 	// Unfortunately this seems to be the only way to do it
 	pointcut methodCall(Object t): 
-		execution(* **()) && target(t)
+		execution(** **()) && target(t)
 		&& !within(debugger..*);
 	pointcut methodCall1(Object t, Object o):
-		execution(* **(..)) && args(o) && target(t)
+		execution(** **(..)) && args(o) && target(t)
 		&& !within(debugger..*);
 	pointcut methodCall2(Object t, Object o1, Object o2):
-		execution(* **(..)) && args(o1, o2) && target(t)
+		execution(** **(..)) && args(o1, o2) && target(t)
 		&& !within(debugger..*);
 	pointcut methodCall3(Object t, Object o1, Object o2, Object o3):
-		execution(* **(..)) && args(o1, o2, o3) && target(t)
+		execution(** **(..)) && args(o1, o2, o3) && target(t)
 		&& !within(debugger..*);
 	pointcut methodCall4(Object t, Object o1, Object o2, Object o3, Object o4):
-		execution(* **(..)) && args(o1, o2, o3, o4) && target(t)
+		execution(** **(..)) && args(o1, o2, o3, o4) && target(t)
 		&& !within(debugger..*);
 	pointcut methodCall5(Object t, Object o1, Object o2, Object o3, Object o4, Object o5):
-		execution(* **(..)) && args(o1, o2, o3, o4, o5) && target(t)
+		execution(** **(..)) && args(o1, o2, o3, o4, o5) && target(t)
+		&& !within(debugger..*);
+	// For static methods
+	pointcut sMethodCall(): 
+		execution(static * **()) 
+		&& !within(debugger..*);
+	pointcut sMethodCall1(Object o):
+		execution(static * **(..)) && args(o) 
+		&& !within(debugger..*);
+	pointcut sMethodCall2(Object o1, Object o2):
+		execution(static * **(..)) && args(o1, o2) 
+		&& !within(debugger..*);
+	pointcut sMethodCall3(Object o1, Object o2, Object o3):
+		execution(static * **(..)) && args(o1, o2, o3) 
+		&& !within(debugger..*);
+	pointcut sMethodCall4(Object o1, Object o2, Object o3, Object o4):
+		execution(static * **(..)) && args(o1, o2, o3, o4) 
+		&& !within(debugger..*);
+	pointcut sMethodCall5(Object o1, Object o2, Object o3, Object o4, Object o5):
+		execution(static * **(..)) && args(o1, o2, o3, o4, o5) 
 		&& !within(debugger..*);
 
 	pointcut fieldGet(Object t) :
@@ -319,6 +338,45 @@ public aspect Breakpoint {
 	methodCall5(t, o1, o2, o3, o4, o5) {
 		Object[] new_args = breakPoint(t, thisJoinPoint, new Object[] { o1, o2, o3, o4, o5 });
 		return proceed(t, new_args[0], new_args[1], new_args[2], new_args[3], new_args[4]);
+	}
+	
+	// Static method advice
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around() : sMethodCall() {
+		breakPoint(null, thisJoinPoint, new Object[] { });
+		return proceed();	
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around(Object o) : sMethodCall1(o) {
+		Object[] new_args = breakPoint(null, thisJoinPoint, new Object[] { o });
+		return proceed(new_args[0]);
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around(Object o1, Object o2) : sMethodCall2(o1, o2) {
+		Object[] new_args = breakPoint(null, thisJoinPoint, new Object[] { o1, o2 });
+		return proceed(new_args[0], new_args[1]);
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around(Object o1, Object o2, Object o3) : sMethodCall3(o1, o2, o3) {
+		Object[] new_args = breakPoint(null, thisJoinPoint, new Object[] { o1, o2, o3 });
+		return proceed(new_args[0], new_args[1], new_args[2]);
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around(Object o1, Object o2, Object o3, Object o4) : 
+	sMethodCall4(o1, o2, o3, o4) {
+		Object[] new_args = breakPoint(null, thisJoinPoint, new Object[] { o1, o2, o3, o4 });
+		return proceed(new_args[0], new_args[1], new_args[2], new_args[3]);
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	Object around(Object o1, Object o2, Object o3, Object o4, Object o5) : 
+	sMethodCall5(o1, o2, o3, o4, o5) {
+		Object[] new_args = breakPoint(null, thisJoinPoint, new Object[] { o1, o2, o3, o4, o5 });
+		return proceed(new_args[0], new_args[1], new_args[2], new_args[3], new_args[4]);
 	}
 
 }
