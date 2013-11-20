@@ -5,7 +5,7 @@ RUN := rlwrap aj5
 EXAMPLES := $(patsubst %.java,%.class,$(wildcard *.java))
 EX_NAMES := $(patsubst %.java,%,$(wildcard *.java))
 
-compile: $(EXAMPLES)
+compile: debugger.jar $(EXAMPLES)
 
 ./%.class: %.java
 	$(AJC) $^
