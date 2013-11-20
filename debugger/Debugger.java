@@ -83,11 +83,11 @@ public class Debugger {
 	// versus the debuggers output.
 	//=========================================================================
 	private static String NORMAL = "\u001B[0m";
-	private static String BOLD_WHITE = "\u001B[37;1m";
+	private static String BOLD_BLUE = "\u001B[34;1m";
 	private static String BOLD_RED = "\u001B[31;1m";
 
 	public static void print(Object s) {
-		System.out.print(BOLD_WHITE + s.toString() + NORMAL);
+		System.out.print(BOLD_BLUE + s.toString() + NORMAL);
 	}
 
 	public static void println(Object s) {
