@@ -102,6 +102,35 @@ public class ClassUtils {
 	}
 
 	/**
+	 * Similar to getMethod(String, String), except it will parse
+	 * the fully qualified name for you.
+	 *
+	 * @param fullyQualified The fully qualified class.method name
+	 *
+	 * @throws Exception If the class or method doesn't exist
+	 *
+	 * @return A method object representing the requested method
+	 */
+	public static Method getMethod(String fullyQualified) throws Exception {
+		int index = fullyQualified.lastIndexOf('.');
+		if (index == -1) {
+			throw new Exception("Invalid qualified name");
+		}
+
+		String clazz = fullyQualified.substring(0, index);
+		String method = fullyQualified.substring(index + 1);
+		if (!isValidClass(clazz)) {
+			throw new Exception("No such class: " + clazz);
+		}
+
+		if (!isValidMethod(clazz, method)) {
+			throw new Exception("No such method: " + method + " for class: " + clazz);
+		}
+
+		return getMethod(clazz, method);
+	}
+
+	/**
 	 * Determines if a class has a field with the specified name. 
 	 *
 	 * @param clazz The fully qualified class name
