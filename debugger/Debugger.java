@@ -26,7 +26,7 @@ public class Debugger {
 		// debugger package and tells java to load them.
 		// This makes sure their static blocks run before
 		// we do anything else.
-		if (!ClassUtils.loadAllClassesInPackage("debugger")) {
+		if (!ClassUtils.loadAllClassesInJar("debugger.jar")) {
 			System.err.println("Failed to load debugger!");
 			System.exit(1);
 		}
