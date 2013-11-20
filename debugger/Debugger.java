@@ -240,8 +240,12 @@ public class Debugger {
 
 			Class<?> c = ClassUtils.getClass(line);
 			Field[] fields = c.getDeclaredFields();
-			for (Field f : fields) {
-				Debugger.println(f.toGenericString());
+			if (fields.length == 0) {
+				Debugger.println("No fields!");
+			} else {
+				for (Field f : fields) {
+					Debugger.println(f.toGenericString());
+				}
 			}
 
 			return false;
@@ -286,8 +290,12 @@ public class Debugger {
 
 			Class<?> c = ClassUtils.getClass(line);
 			Method[] methods = c.getDeclaredMethods();
-			for (Method m : methods) {
-				Debugger.println(m.toGenericString());
+			if (methods.length == 0) {
+				Debugger.println("No methods!");
+			} else {
+				for (Method m : methods) {
+					Debugger.println(m.toGenericString());
+				}
 			}
 
 			return false;
