@@ -13,14 +13,16 @@ EX_NAMES := $(patsubst %.java,%,$(wildcard *.java))
 compile: $(EXAMPLES)
 
 define RUN_template
-$2:
+$2: $3
 	$(RUN) $1
 endef
 
-$(foreach d,$(EX_NAMES),$(eval $(call RUN_template,$d,$(shell echo $d | sed -r s/\([A-Z][a-z]*\)\([A-Z].*\)/\\1/g | tr A-Z a-z))))
+SED := sed -r s/\([A-Z][a-z]*\)\([A-Z]\|\..*\)/\\1/g 
+
+$(foreach d,$(EXAMPLES),$(eval $(call RUN_template,$(patsubst %.class,%,$d),$(shell echo $d | $(SED) | tr A-Z a-z),$d)))
 
 h:
-	@echo $(shell echo $(EX_NAMES) | sed -r s/\([A-Z][a-z]*\)\([A-Z].*\)/\\1/g | tr A-Z a-z)
+	@echo $(foreach d,$(EXAMPLES),$(shell echo $d | $(SED) | tr A-Z a-z))
 
 clean:
 	/bin/rm -f *.class
