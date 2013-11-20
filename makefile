@@ -17,6 +17,8 @@ $2: $3
 	$(RUN) $1
 endef
 
+# Converts: VarWatch.class -> Var or Stack.class -> Stack
+# Keeps only the first capital word
 SED := sed -r s/\([A-Z][a-z]*\)\([A-Z]\|\..*\)/\\1/g 
 
 $(foreach d,$(EXAMPLES),$(eval $(call RUN_template,$(patsubst %.class,%,$d),$(shell echo $d | $(SED) | tr A-Z a-z),$d)))
