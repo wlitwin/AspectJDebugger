@@ -1,6 +1,4 @@
-DEBUGGER := debugger/*.aj debugger/*.java
-
-AJC := ajc -1.5
+AJC := ajc -1.6
 
 RUN := rlwrap aj5
 
