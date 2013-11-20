@@ -26,32 +26,32 @@ public aspect Breakpoint {
 	// Unfortunately this seems to be the only way to do it
 	pointcut methodCall(Object t): 
 		execution(* **()) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 	pointcut methodCall1(Object t, Object o):
 		execution(* **(..)) && args(o) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 	pointcut methodCall2(Object t, Object o1, Object o2):
 		execution(* **(..)) && args(o1, o2) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 	pointcut methodCall3(Object t, Object o1, Object o2, Object o3):
 		execution(* **(..)) && args(o1, o2, o3) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 	pointcut methodCall4(Object t, Object o1, Object o2, Object o3, Object o4):
 		execution(* **(..)) && args(o1, o2, o3, o4) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 	pointcut methodCall5(Object t, Object o1, Object o2, Object o3, Object o4, Object o5):
 		execution(* **(..)) && args(o1, o2, o3, o4, o5) && target(t)
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 
 	pointcut fieldGet(Object t) :
 		get(* *)
 		&& target(t) 
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 
 	pointcut fieldSet(Object t, Object a) :
 		set(* *)
 		&& args(a) && target(t) 
-		&& !within(debugger.*);
+		&& !within(debugger..*);
 
 	// Add the commands this Aspect offers
 	static {
