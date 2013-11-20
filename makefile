@@ -5,14 +5,14 @@ RUN := rlwrap aj5
 EXAMPLES := $(patsubst %.java,%.class,$(wildcard *.java))
 EX_NAMES := $(patsubst %.java,%,$(wildcard *.java))
 
+debugger.jar: debugger/*.java debugger/*.aj debugger/META-INF/aop.xml
+	$(AJC) debugger/*.aj debugger/*.java -outjar debugger.jar
+	cd debugger;zip -g ../debugger.jar META-INF/aop.xml
+
 compile: debugger.jar $(EXAMPLES)
 
 ./%.class: %.java
 	$(AJC) $^
-
-debugger.jar: debugger/*.java debugger/*.aj debugger/META-INF/aop.xml
-	$(AJC) debugger/*.aj debugger/*.java -outjar debugger.jar
-	cd debugger;zip -g ../debugger.jar META-INF/aop.xml
 
 define RUN_template
 $2: debugger.jar $3
