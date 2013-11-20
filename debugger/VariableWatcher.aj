@@ -1,6 +1,7 @@
 package debugger;
 
 import java.util.*;
+import org.aspectj.lang.annotation.SuppressAjWarnings;
 
 privileged aspect VariableWatcher {
 	// Need a map to see if the variable is being watched
@@ -88,6 +89,7 @@ privileged aspect VariableWatcher {
 		args(value) && !within(debugger.*);
 
 	// Grab the new value
+	@SuppressAjWarnings({"adviceDidNotMatch"})
 	before(Object o, Object value) : onSet(o, value) {
 		// Add the variable being set
 		String fullName = thisJoinPoint.getSignature().toString();

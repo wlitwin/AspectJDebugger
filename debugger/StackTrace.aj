@@ -1,6 +1,7 @@
 package debugger;
 
 import java.util.*;
+import org.aspectj.lang.annotation.SuppressAjWarnings;
 
 public aspect StackTrace {
 	static {
@@ -20,20 +21,6 @@ public aspect StackTrace {
 	pointcut onExecution() :
 		execution(* *(..)) &&
 		!within(debugger.*);
-
-	before() : onGeneralCall() {
-		callStack.add(thisJoinPoint.getSignature().toLongString());
-	}
-
-	before(Object t) : onCall(t) {
-		int hashCode = System.identityHashCode(t);
-		callStack.add("[" + hashCode + "] " + 
-			thisJoinPoint.getSignature().toLongString());
-	}
-
-	after() : onExecution() {
-		callStack.pop();
-	}
 
 	static class StackTraceCommand implements ICommand {
 		public boolean matches(String input) {
@@ -61,5 +48,22 @@ public aspect StackTrace {
 
 			return false;
 		}
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	before() : onGeneralCall() {
+		callStack.add(thisJoinPoint.getSignature().toLongString());
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	before(Object t) : onCall(t) {
+		int hashCode = System.identityHashCode(t);
+		callStack.add("[" + hashCode + "] " + 
+			thisJoinPoint.getSignature().toLongString());
+	}
+
+	@SuppressAjWarnings({"adviceDidNotMatch"})
+	after() : onExecution() {
+		callStack.pop();
 	}
 }
