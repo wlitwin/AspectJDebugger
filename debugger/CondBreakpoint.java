@@ -55,7 +55,7 @@ public class CondBreakpoint {
 		}
 
 		public boolean doWork(Scanner in) {
-			String input = in.nextLine();
+			String input = in.nextLine().trim();
 
 			CondBreakpoint cb = parse(input);
 			if (cb != null) {
@@ -93,7 +93,7 @@ public class CondBreakpoint {
 		}
 
 		public boolean doWork(Scanner in) {
-			String line = in.nextLine();
+			String line = in.nextLine().trim();
 			String[] can = line.split("\\.");
 			if (can.length != 2) {
 				Debugger.errorln("Invalid usage: " + getCommand());
@@ -660,6 +660,10 @@ public class CondBreakpoint {
 	 * @return A correctly formed expression tree
 	 */
 	private static Expr parseExpression1(LinkedList<TokInfo> tokens, Expr lhs, int min_precedence) throws Exception {
+		if (tokens.isEmpty()) { 
+			return lhs; 
+		}
+
 		TokInfo ti = tokens.get(0);
 		while (!tokens.isEmpty() && ti.tok.isBinOp() && ti.tok.precedence() >= min_precedence) {
 			TokInfo op = tokens.remove(0);	
@@ -736,7 +740,7 @@ public class CondBreakpoint {
 			case STR:  return "\"" + ((StrExpr)node).value + "\"";
 			case NULL: return "null";
 			case ARG:  return "arg[" + ((ArgExpr)node).index + "]";
-			case NOT:  return "not (" + exprToInfix(((NotExpr)node).expr) + ")";
+			case NOT:  return "(not " + exprToInfix(((NotExpr)node).expr) + ")";
 			case AND:  return "(" + exprToInfix(((BinExpr)node).left) + " && " + exprToInfix(((BinExpr)node).right) + ")";
 			case OR:   return "(" + exprToInfix(((BinExpr)node).left) + " || " + exprToInfix(((BinExpr)node).right) + ")";
 			case LT:   return "(" + exprToInfix(((BinExpr)node).left) + " < "  + exprToInfix(((BinExpr)node).right) + ")";
