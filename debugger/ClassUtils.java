@@ -3,6 +3,7 @@ package debugger;
 import java.io.*;
 import java.util.*;
 import java.net.URL;
+import java.util.zip.*;
 import java.lang.reflect.*;
 
 /**
@@ -184,9 +185,36 @@ public class ClassUtils {
 					}
 				}
 			}
-		} catch (ClassNotFoundException e) {
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
 			return false;
-		} catch (IOException e) {
+		}
+
+		return true;
+	}
+
+	/**
+	 * Loads and initializes all classes from a jar file.
+	 *
+	 * @param jar The path to the jar file
+	 *
+	 * @return True if successfully loaded all classes, false otherwise
+	 */
+	public static boolean loadAllClassesInJar(String jar) {
+		try {
+			ClassLoader cl = ClassLoader.getSystemClassLoader();
+			ZipInputStream zip = new ZipInputStream(new FileInputStream(jar));
+			for (ZipEntry ze = zip.getNextEntry(); ze != null; ze = zip.getNextEntry()) {
+				if (!ze.isDirectory() && ze.getName().endsWith(".class")) {
+					String path = ze.getName();
+					path = path.substring(0, path.length() - 6);
+					path = path.replace('/', '.');
+					Class.forName(path, true, cl);
+				}
+			
+			}
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
 			return false;
 		}
 
