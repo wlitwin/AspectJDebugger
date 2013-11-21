@@ -123,22 +123,7 @@ privileged aspect Replacer {
 
 	// We're going to use the same trick as Breakpoint.aj
 	pointcut methodCall(Object t): 
-		execution(* **()) && target(t)
-		&& !within(debugger..*);
-	pointcut methodCall1(Object t, Object o):
-		execution(* **(..)) && args(o) && target(t)
-		&& !within(debugger..*);
-	pointcut methodCall2(Object t, Object o1, Object o2):
-		execution(* **(..)) && args(o1, o2) && target(t)
-		&& !within(debugger..*);
-	pointcut methodCall3(Object t, Object o1, Object o2, Object o3):
-		execution(* **(..)) && args(o1, o2, o3) && target(t)
-		&& !within(debugger..*);
-	pointcut methodCall4(Object t, Object o1, Object o2, Object o3, Object o4):
-		execution(* **(..)) && args(o1, o2, o3, o4) && target(t)
-		&& !within(debugger..*);
-	pointcut methodCall5(Object t, Object o1, Object o2, Object o3, Object o4, Object o5):
-		execution(* **(..)) && args(o1, o2, o3, o4, o5) && target(t)
+		execution(* **(..)) && target(t)
 		&& !within(debugger..*);
 
 	/**
@@ -162,7 +147,14 @@ privileged aspect Replacer {
 		return replacements.containsKey(classNameAndCombined(jp)[2]);
 	}
 
-	static Object doReplace(JoinPoint jp, Object[] args) {
+	static Object doReplace(JoinPoint jp, Object target) {
+		Object[] jpArgs = jp.getArgs();
+		Object[] args = new Object[jpArgs.length + 1];
+		args[0] = target;
+		for (int i = 0; i < jpArgs.length; ++i) {
+			args[i+1] = jpArgs[i];	
+		}
+
 		String combined = classNameAndCombined(jp)[2];
 		if (!replacements.containsKey(combined)) {
 			throw new RuntimeException("Replacement: Shouldn't happen!");
@@ -173,8 +165,23 @@ privileged aspect Replacer {
 		try {
 			Object o = m.invoke(null, args);
 			return o;
+		} catch (IllegalAccessException iae) {
+			Debugger.errorln("Illegal access exception");
+		} catch (IllegalArgumentException iae) {
+			Debugger.errorln("Illegal argument exception");
+		} catch (InvocationTargetException ite) {
+			Debugger.errorln(ite.getCause().getMessage());
+			Debugger.errorln("Invocation target exception");
+		} catch (NullPointerException npe) {
+			Debugger.errorln("Null pointer exception");
+		} catch (ExceptionInInitializerError eiie) {
+			Debugger.errorln("ExceptionInInitializerError");
 		} catch (Exception e) {
-			Debugger.errorln(e.getMessage());
+			if (e.getMessage() != null) {
+				Debugger.errorln(e.getMessage());
+			} else {
+				Debugger.errorln("Replacer: Unknown error");
+			}
 		}
 
 		return null;
@@ -183,56 +190,9 @@ privileged aspect Replacer {
 	@SuppressAjWarnings({"adviceDidNotMatch"})
 	Object around(Object t) : methodCall(t) {
 		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t });
+			return doReplace(thisJoinPoint, t);
 		} else {
 			return proceed(t);
-		}
-	}
-
-	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t, Object o) : methodCall1(t, o) {
-		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t, o });
-		} else {
-			return proceed(t, o);
-		}
-	}
-
-	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t, Object o1, Object o2) : methodCall2(t, o1, o2) {
-		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t, o1, o2 });
-		} else {
-			return proceed(t, o1, o2);
-		}
-	}
-
-	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t, Object o1, Object o2, Object o3) : methodCall3(t, o1, o2, o3) {
-		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t, o1, o2, o3 });
-		} else {
-			return proceed(t, o1, o2, o3);
-		}
-	}
-
-	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t, Object o1, Object o2, Object o3, Object o4) : 
-	methodCall4(t, o1, o2, o3, o4) {
-		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t, o1, o2, o3, o4 });
-		} else {
-			return proceed(t, o1, o2, o3, o4);
-		}
-	}
-
-	@SuppressAjWarnings({"adviceDidNotMatch"})
-	Object around(Object t, Object o1, Object o2, Object o3, Object o4, Object o5) : 
-	methodCall5(t, o1, o2, o3, o4, o5) {
-		if (shouldReplace(thisJoinPoint)) {
-			return doReplace(thisJoinPoint, new Object[] { t, o1, o2, o3, o4, o5 });
-		} else {
-			return proceed(t, o1, o2, o3, o4, o5);
 		}
 	}
 }
