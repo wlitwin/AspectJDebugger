@@ -50,7 +50,6 @@ public class Debugger {
 	 */
 	public static void prompt() {
 		try {
-			Debugger.println("Debug prompt");
 			boolean finished = false;
 			while (!finished) {
 				Debugger.print("> ");
@@ -67,7 +66,7 @@ public class Debugger {
 				}
 
 				if (!foundCommand) {
-					in.nextLine(); // Clear what the entered
+					in.nextLine(); // Clear what they entered
 					Debugger.errorln("Invalid command!");
 				}
 			}
