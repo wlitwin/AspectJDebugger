@@ -85,8 +85,8 @@ privileged aspect VariableWatcher {
 	}
 
 	pointcut onSet(Object o, Object value):
-		set(* *) && this(o) && 
-		args(value) && !within(debugger.*);
+		set(** **) && target(o) && 
+		args(value) && !within(debugger..*);
 
 	// Grab the new value
 	@SuppressAjWarnings({"adviceDidNotMatch"})
@@ -97,7 +97,6 @@ privileged aspect VariableWatcher {
 		String[] varAndClass = varClass.split("\\.");
 
 		int hashCode = System.identityHashCode(o);
-
 		if (watchedVariables.contains(varClass)) {
 			Debugger.println("-> [" + hashCode + "] " + fullName + " = " + value);	
 		}
