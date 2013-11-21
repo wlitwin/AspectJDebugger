@@ -35,35 +35,36 @@ class SetArgCommand implements ICommand {
 			return false;
 		}
 
-		String[] input = line.split("\\s+");
-		if (input.length < 2) {
-			Debugger.errorln("Requires two arguments - " + getCommand());
-			return false;
-		}
-
-		if (!Utils.isInteger(input[0])) {
+		Scanner sc = new Scanner(line);
+		if (!sc.hasNextInt()) {
 			Debugger.errorln("-> first parameter is not an integer");
 			return false;
 		}
 
-		int arg_index = Integer.parseInt(input[0]);
+		int arg_index = sc.nextInt();
 		if (arg_index < 0 || arg_index >= breakArgs.length) {
 			Debugger.errorln("-> arg number is out of bounds");
 			return false;
 		}
 
+		if (!sc.hasNextLine()) {
+			Debugger.errorln("Requires two arguments - " + getCommand());
+			return false;
+		}
+
 		// Determine if the second parameter is a String or an integer
+		String input = sc.nextLine().trim();
 		Class<?> argClass = breakArgs[arg_index].getClass();
 		Class<?> intClass = Integer.class;
 		Class<?> strClass = String.class;
-		if (Utils.isInteger(input[1])) {
+		if (Utils.isInteger(input)) {
 			if (!intClass.isAssignableFrom(argClass) /*&& 
 				!int.class.isAssignableFrom(argClass)*/) {
 				Debugger.errorln("Cannot assign an integer to a " + 
 						breakArgs[arg_index].getClass().getName());
 				return false;
 			} else {
-				breakArgs[arg_index] = Integer.parseInt(input[1]);
+				breakArgs[arg_index] = Integer.parseInt(input);
 			}
 		} else { // Try as a String
 			if (!strClass.isAssignableFrom(argClass)) {
@@ -71,7 +72,8 @@ class SetArgCommand implements ICommand {
 						breakArgs[arg_index].getClass().getName());
 				return false;
 			} else {
-				breakArgs[arg_index] = input[1];
+				// Combine the rest of the array together
+				breakArgs[arg_index] = input;
 			}
 		}
 
