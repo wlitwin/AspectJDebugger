@@ -30,5 +30,6 @@ h:
 
 clean:
 	/bin/rm -f *.class
-	/bin/rm -f debugger/*.class
+
+cleanall: clean
 	/bin/rm -f debugger.jar
