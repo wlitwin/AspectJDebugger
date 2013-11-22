@@ -58,3 +58,67 @@ may use a variation on the following commands:
 
 Command Usage
 =============
+Run 'help' from the debugger (reproduced here)
+--------------------------------------------------------------------------------------
+break class.method                - stop execution when the specified method is called
+breakget class.field              - break on a field get
+breakif class.method expression   - conditional breakpoint
+breakifremove class.method        - removes a conditional breakpoint
+breakset class.field              - break on a field set
+fields class                      - list the fields of a class
+go                                - resume execution
+help                              - displays available commands
+instances class                   - find all instances of a class
+load path                         - load a class from a file
+methods class                     - list the methods of a class
+quit                              - quits the debugger (and program)
+replace source.method dest.method - replace a method on an object with a call to a static method
+replaceremove class.method        - remove a current replacement
+setarg num val                    - change an argument value, only valid during a breakpoint
+stack                             - shows a stack trace
+unwatch class.field               - stop watching a variable
+watch class.field                 - watch a variable
+--------------------------------------------------------------------------------------
+Notes: 
+
+    - Where you see 'class' that means classes from the default package, the code could
+	  be changed to look for the final '.' and use the first part for the class name, but
+	  it was easier to do the "quick n' dirty" for now.
+
+    - The conditional breakpoint actually specifies a full mini-grammar. It has the
+	  following operators:
+
+	  			and, or, not, <, >, <=, >=, =
+
+	  and the following primitives (strings have quotes at the command line "hello"):
+
+	  			integers, strings, null, arg #
+	
+	  It also allows parentheses to specify ordering. The following are all valid 
+	  conditionals:
+
+	  			arg 0 = null or arg 0 > 100
+
+				arg 0 = "Test" and arg 1 > 100 or arg 0 < -100
+
+				(arg 0 > "5") or (not arg 1 = 10)
+
+				(arg 0 = arg 1) or (not arg 1 = arg 2)
+
+	  The entire expression is typed checked against itself and the method it's
+	  being applied to. It also must have an overall type of boolean, thus 'arg 0'
+	  alone isn't a valid conditional. This abstract syntax tree (AST) is evaluated 
+	  at runtime when the method call is encountered and if it results in true then
+	  the breakpoint happens.
+
+	  The AST creation is done using a special cased LR(1) parser for infix expressions
+	  and has the outcome of all unary operators (not) having higher precedence than 
+	  all infix operators. Therefore the following might be misleading:
+	  
+	  	 	 	not arg 0 and arg 1
+
+	  is actually
+
+	  			not (arg 0 and arg 1)
+
+	  Parser algorithm: http://en.wikipedia.org/wiki/Operator-precedence_parser
