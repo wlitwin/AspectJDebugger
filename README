@@ -1,0 +1,60 @@
+AspectJ Debugger
+================
+The name might be a little misleading. This is not a tool for debugging
+AspectJ programs. This is a 'debugger' for Java written use AspectJ as
+the glue.
+
+Note: This is not meant for any kind of real world use
+
+Features
+========
+ * List a class' fields and methods
+ * Variable watching
+ * Method breakpointing
+ * Method replacing
+ * Possibly argument changing
+ * Dynamically load new class/reload class
+ * Conditional breakpoints (like arg1 > 0 or arg1 == null)
+ * List the current stack trace, like what function you're currently in and all the arguments used by previous functions
+ * Break on variable set/get
+
+Makefile
+========
+The makefile assumes AspectJ is installed and available in the path. The
+installed AspectJ compiler should support at least v1.5 java (the -1.5)
+flag. Currently the -1.6 is used, but that can be changed in the makefile.
+
+The makefile also contains a rule macro which is used for running examples.
+To use it you create a file in the main directory and then say 'make name',
+'name' is the lowercase version of the first uppercase word (and trailing
+and mixed numbers) of the filename. The below list may make this clearer:
+
+VarWatcher.java       -> make var
+Example1.java         -> make example1
+Ex1SuperAwesome.java  -> make ex1
+Ex21314something.java -> make ex21314something
+R2d2.java             -> make r2d2
+R2d2Rocks.java        -> make r2d2
+
+As can be seen with the last two items you can unintentionally create a
+conflict. That's why it's recommended to use a number suffix when creating
+files with the same first (capital onward) word. This feature was added
+to make presenting easier. If you want a more precise definition take the
+following sed command (which is the same as used in the makefile):
+
+    sed -r s/\([A-Z][a-z0-9]*\)\([A-Z]\|\..*\)/\\1/g
+
+We match the regex [A-Z][a-z0-9]* and throw away the rest of the string
+
+Running
+=======
+
+If you run the above makefile then AspectJ will automatically inject code
+and run the debugger prompt before calling the main method. Otherwise you
+may use a variation on the following commands:
+
+    javac MyFile.java
+    aj5 -cp $CLASSPATH:.:debugger.jar MyFile
+
+Command Usage
+=============
