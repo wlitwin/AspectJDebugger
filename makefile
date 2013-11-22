@@ -1,3 +1,6 @@
+# Mostly for presenting that's what all the magic at the bottom is for
+# default make target builds debugger.jar
+
 AJC := ajc -1.6
 
 RUN := rlwrap aj5
